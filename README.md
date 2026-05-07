@@ -30,7 +30,7 @@ The app creates `instance/backstage.db` automatically on first run.
 Render's Flask docs currently recommend:
 
 - Build command: `pip install -r requirements.txt`
-- Start command: `gunicorn app:app`
+- Start command: `gunicorn wsgi:app`
 
 This repo now includes a [render.yaml](C:/Users/think/Documents/GitHub/2026-yr12-tatehk-AT3-StageTrack/render.yaml:1) Blueprint and reads `DATABASE_URL` / `SECRET_KEY` from environment variables for production.
 
@@ -56,7 +56,7 @@ If you prefer to create the service without the Blueprint:
 
 - Runtime: `Python`
 - Build command: `pip install -r requirements.txt`
-- Start command: `gunicorn app:app`
+- Start command: `gunicorn wsgi:app`
 - Environment variables:
   - `DATABASE_URL` = your Render Postgres internal connection string
   - `SECRET_KEY` = a long random secret
