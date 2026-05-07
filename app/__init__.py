@@ -87,3 +87,6 @@ def ensure_schema_updates():
         if "smtp_from_welcome_email" not in email_columns:
             db.session.execute(text("ALTER TABLE email_settings ADD COLUMN smtp_from_welcome_email VARCHAR(255) NOT NULL DEFAULT ''"))
         db.session.commit()
+
+
+app = create_app()
