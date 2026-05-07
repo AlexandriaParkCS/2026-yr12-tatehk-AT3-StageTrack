@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<section class="auth-card">
+    <h1>Create the first admin account</h1>
+    <form method="post" class="form-grid">
+        <label>
+            Full name
+            <input type="text" name="name" required>
+        </label>
+        <label>
+            Email
+            <input type="email" name="email" required>
+        </label>
+        <label>
+            Password
+            <input type="password" name="password" required>
+        </label>
+        <p class="empty-state">This first account is created as the system admin automatically.</p>
+        <button class="button button-primary" type="submit">Create admin account</button>
+    </form>
+</section>
+{% endblock %}

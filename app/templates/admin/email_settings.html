@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Email Settings{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Super admin</p>
+        <h1>Email Settings</h1>
+        <p>Configure SMTP for password resets and future notifications. This page is admin-only.</p>
+    </div>
+    <a class="button button-secondary" href="{{ url_for('admin.users') }}">Back to users</a>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid two-column">
+        <label class="full-width">
+            <span>Enable email sending</span>
+            <input type="checkbox" name="smtp_enabled" {% if settings.smtp_enabled %}checked{% endif %}>
+        </label>
+        <label>
+            SMTP host
+            <input type="text" name="smtp_host" value="{{ settings.smtp_host }}" placeholder="smtp.office365.com" required>
+        </label>
+        <label>
+            SMTP port
+            <input type="number" name="smtp_port" value="{{ settings.smtp_port }}" min="1" required>
+        </label>
+        <label class="full-width">
+            <span>Use TLS</span>
+            <input type="checkbox" name="smtp_use_tls" {% if settings.smtp_use_tls %}checked{% endif %}>
+        </label>
+        <label>
+            SMTP username
+            <input type="text" name="smtp_username" value="{{ settings.smtp_username }}">
+        </label>
+        <label>
+            SMTP password
+            <input type="password" name="smtp_password" placeholder="Leave blank to keep current password">
+        </label>
+        <label class="full-width">
+            From email
+            <input type="email" name="smtp_from_email" value="{{ settings.smtp_from_email }}" placeholder="noreply@school.edu" required>
+        </label>
+        <div class="actions full-width">
+            <button class="button button-primary" type="submit">Save email settings</button>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Send test email</h2>
+    </div>
+    <form method="post" action="{{ url_for('admin.test_email_settings') }}" class="form-grid">
+        <label>
+            Test recipient email
+            <input type="email" name="test_email" placeholder="you@example.com" required>
+        </label>
+        <div class="actions">
+            <button class="button button-secondary" type="submit">Send test email</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Backstage Equipment & Production Management{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-backdrop"></div>
+    <header class="site-header">
+        <a class="brand" href="{{ url_for('home') }}">
+            <span class="brand-mark">ST</span>
+            <span class="brand-copy">
+                <strong>StageTrack</strong>
+                <span>Production control</span>
+            </span>
+        </a>
+        <nav class="site-nav">
+            {% if current_user %}
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('equipment.index') }}">Equipment</a>
+                <a href="{{ url_for('events.index') }}">Events</a>
+                <a href="{{ url_for('tasks.index') }}">Tasks</a>
+                {% if current_user.role == "Admin" %}
+                    <a href="{{ url_for('admin.users') }}">Admin</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}">Login</a>
+                {% if registration_open %}
+                    <a href="{{ url_for('auth.register') }}">Register</a>
+                {% endif %}
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <section class="flash-stack">
+                    {% for category, message in messages %}
+                        <article class="flash flash-{{ category }}">{{ message }}</article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

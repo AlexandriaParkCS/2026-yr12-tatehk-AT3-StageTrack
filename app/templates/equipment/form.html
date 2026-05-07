@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}Edit{% else %}Add{% endif %} Equipment{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Inventory editor</p>
+        <h1>{% if item %}Edit{% else %}Add{% endif %} equipment</h1>
+    </div>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid two-column">
+        <label>
+            Name
+            <input type="text" name="name" value="{{ item.name if item else '' }}" required>
+        </label>
+        <label>
+            Category
+            <select name="category" required>
+                <option value="">Select category</option>
+                {% for category in categories %}
+                    <option value="{{ category }}" {% if item and item.category == category %}selected{% endif %}>{{ category }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Serial number
+            <input type="text" name="serial_number" value="{{ item.serial_number if item else '' }}">
+        </label>
+        <label>
+            Condition
+            <input type="text" name="condition" value="{{ item.condition if item else 'Good' }}">
+        </label>
+        <label>
+            Location
+            <input type="text" name="location" value="{{ item.location if item else '' }}">
+        </label>
+        <label>
+            Status
+            <select name="status" required>
+                {% for status in statuses %}
+                    <option value="{{ status }}" {% if item and item.status == status %}selected{% elif not item and status == "Available" %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="full-width">
+            Description
+            <textarea name="description" rows="4">{{ item.description if item else '' }}</textarea>
+        </label>
+        <div class="actions full-width">
+            <button class="button button-primary" type="submit">Save equipment</button>
+            <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

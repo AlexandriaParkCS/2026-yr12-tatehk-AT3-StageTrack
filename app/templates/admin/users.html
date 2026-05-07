@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Super admin</p>
+        <h1>User Access Control</h1>
+        <p>Manage staff and student accounts, update permissions, and issue password resets.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('admin.email_settings') }}">Email settings</a>
+        <a class="button button-primary" href="{{ url_for('admin.create_user') }}">Add user</a>
+    </div>
+</section>
+
+{% if latest_reset_token %}
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Manual reset link</h2>
+        </div>
+        <p class="empty-state">Email sending is not configured, so share this secure link directly with the user:</p>
+        <input type="text" value="{{ url_for('auth.reset_password', token=latest_reset_token.token, _external=True) }}" readonly>
+    </section>
+{% endif %}
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Access</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr>
+                        <td data-label="Name">{{ user.name }}</td>
+                        <td data-label="Email">{{ user.email }}</td>
+                        <td data-label="Role">
+                            <form method="post" action="{{ url_for('admin.update_role', user_id=user.id) }}" class="inline-form">
+                                <select name="role" aria-label="Role for {{ user.name }}">
+                                    {% for role in roles %}
+                                        <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button class="button button-secondary" type="submit">Save</button>
+                            </form>
+                        </td>
+                        <td data-label="Access">
+                            <span class="status-pill">{{ "Active" if user.is_active else "Disabled" }}</span>
+                        </td>
+                        <td data-label="Created">{{ user.created_at.strftime("%d %b %Y") }}</td>
+                        <td data-label="Actions" class="actions">
+                            <form method="post" action="{{ url_for('admin.toggle_access', user_id=user.id) }}">
+                                <button type="submit" class="button button-secondary">
+                                    {{ "Remove access" if user.is_active else "Restore access" }}
+                                </button>
+                            </form>
+                            <form method="post" action="{{ url_for('admin.send_reset', user_id=user.id) }}">
+                                <button type="submit" class="button button-secondary">Send reset</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty-state">No users found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

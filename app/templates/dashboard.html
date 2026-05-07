@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Control room</p>
+        <h1>Dashboard</h1>
+        <p>Track inventory health and upcoming productions at a glance.</p>
+    </div>
+</section>
+
+<section class="stat-grid">
+    <article class="stat-card">
+        <span>Total equipment</span>
+        <strong>{{ stats.equipment_total }}</strong>
+    </article>
+    <article class="stat-card alert">
+        <span>Missing items</span>
+        <strong>{{ stats.missing_items }}</strong>
+    </article>
+    <article class="stat-card">
+        <span>Open tasks</span>
+        <strong>{{ stats.open_tasks }}</strong>
+    </article>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>{{ "Crew tasks" if current_user.role in manager_roles else "My next tasks" }}</h2>
+        <a class="button button-secondary" href="{{ url_for('tasks.index') }}">Open tasks</a>
+    </div>
+    {% if stats.task_snapshot %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Event</th>
+                        <th>Due</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in stats.task_snapshot %}
+                        <tr>
+                            <td data-label="Task">{{ task.title }}</td>
+                            <td data-label="Event">{{ task.event.name }}</td>
+                            <td data-label="Due">{{ task.due_time.strftime("%d %b %Y %I:%M %p") if task.due_time else "Not set" }}</td>
+                            <td data-label="Status"><span class="status-pill">{{ task.status }}</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty-state">No tasks have been assigned yet.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Upcoming events</h2>
+        {% if current_user.role in manager_roles %}
+            <a class="button button-secondary" href="{{ url_for('events.create') }}">Add event</a>
+        {% endif %}
+    </div>
+    {% if stats.upcoming_events %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Venue</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in stats.upcoming_events %}
+                        <tr>
+                            <td data-label="Event">{{ event.name }}</td>
+                            <td data-label="Venue">{{ event.venue }}</td>
+                            <td data-label="Date">{{ event.event_date.strftime("%d %b %Y %I:%M %p") }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty-state">No events scheduled yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

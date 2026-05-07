@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit Task" if task else "New Task" }}{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Crew coordination</p>
+        <h1>{{ "Edit Task" if task else "Create Task" }}</h1>
+        <p>Assign event work to crew members and keep due times visible.</p>
+    </div>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid two-column">
+        <label>
+            Event
+            <select name="event_id" required>
+                <option value="">Select event</option>
+                {% for event in events %}
+                    <option value="{{ event.id }}" {% if task and task.event_id == event.id %}selected{% endif %}>{{ event.name }} - {{ event.venue }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Assign to
+            <select name="assigned_to" required>
+                <option value="">Select crew member</option>
+                {% for user in users %}
+                    <option value="{{ user.id }}" {% if task and task.assigned_to == user.id %}selected{% endif %}>{{ user.name }} ({{ user.role }})</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Task title
+            <input type="text" name="title" value="{{ task.title if task else '' }}" required>
+        </label>
+        <label>
+            Status
+            <select name="status">
+                {% for status in statuses %}
+                    <option value="{{ status }}" {% if task and task.status == status %}selected{% elif not task and status == "Pending" %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="full-width">
+            Description
+            <textarea name="description" rows="4">{{ task.description if task else '' }}</textarea>
+        </label>
+        <label>
+            Due time
+            <input type="datetime-local" name="due_time" value="{{ task.due_time.strftime('%Y-%m-%dT%H:%M') if task and task.due_time else '' }}">
+        </label>
+        <div class="actions">
+            <button type="submit" class="button button-primary">{{ "Save changes" if task else "Create task" }}</button>
+            <a class="button button-secondary" href="{{ url_for('tasks.index') }}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Equipment{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Inventory</p>
+        <h1>Equipment</h1>
+    </div>
+    {% if current_user.role in manager_roles %}
+        <a class="button button-primary" href="{{ url_for('equipment.create') }}">Add equipment</a>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <form method="get" class="filter-bar">
+        <input type="search" name="q" placeholder="Search equipment" value="{{ current_search }}">
+        <select name="category">
+            <option value="">All categories</option>
+            {% for category in categories %}
+                <option value="{{ category }}" {% if current_category == category %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+        </select>
+        <button class="button button-secondary" type="submit">Filter</button>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Location</th>
+                    {% if current_user.role in manager_roles %}
+                        <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in equipment_items %}
+                    <tr>
+                        <td data-label="Name">{{ item.name }}</td>
+                        <td data-label="Category">{{ item.category }}</td>
+                        <td data-label="Status"><span class="status-pill">{{ item.status }}</span></td>
+                        <td data-label="Location">{{ item.location or "Not set" }}</td>
+                        {% if current_user.role in manager_roles %}
+                            <td data-label="Actions" class="actions">
+                                <a href="{{ url_for('equipment.edit', item_id=item.id) }}">Edit</a>
+                                {% if current_user.role in ["Admin", "Teacher"] %}
+                                    <form method="post" action="{{ url_for('equipment.delete', item_id=item.id) }}">
+                                        <button type="submit" class="button-link">Delete</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-state">No equipment found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

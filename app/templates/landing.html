@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Backstage OPS{% endblock %}
+{% block content %}
+<section class="hero">
+    <div>
+        <p class="eyebrow">School production workflow</p>
+        <h1>Keep equipment, events, and student crew in sync.</h1>
+        <p class="hero-copy">
+            A mobile-friendly platform for backstage teams to track inventory, plan event setups,
+            and keep production tasks visible during busy show days.
+        </p>
+        <div class="hero-actions">
+            {% if registration_open %}
+                <a class="button button-primary" href="{{ url_for('auth.register') }}">Create account</a>
+            {% endif %}
+            <a class="button button-secondary" href="{{ url_for('auth.login') }}">Sign in</a>
+        </div>
+    </div>
+    <aside class="hero-panel">
+        <p class="eyebrow">Live floor view</p>
+        <h2>Built for quick decisions during busy bump-ins.</h2>
+        <div class="hero-metrics">
+            <article>
+                <span>Inventory</span>
+                <strong>Track gear fast</strong>
+            </article>
+            <article>
+                <span>Events</span>
+                <strong>Run cleaner setups</strong>
+            </article>
+            <article>
+                <span>Crew</span>
+                <strong>Keep tasks visible</strong>
+            </article>
+        </div>
+    </aside>
+</section>
+
+<section class="feature-strip">
+    <article class="mini-panel">
+        <p class="eyebrow">Equipment</p>
+        <h2>Know what is missing before the show starts.</h2>
+        <p>Inventory, status tracking, and locations stay visible from a phone or laptop.</p>
+    </article>
+    <article class="mini-panel">
+        <p class="eyebrow">Coordination</p>
+        <h2>Give students a simple run sheet they can actually follow.</h2>
+        <p>Tasks, due times, and event details stay in one place instead of scattered messages.</p>
+    </article>
+    <article class="mini-panel">
+        <p class="eyebrow">Admin</p>
+        <h2>Control access, roles, and password resets from one screen.</h2>
+        <p>Super admins can manage people and email settings without digging through code.</p>
+    </article>
+</section>
+{% endblock %}

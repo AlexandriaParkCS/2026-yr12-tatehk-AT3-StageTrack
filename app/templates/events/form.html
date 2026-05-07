@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{% if event %}Edit{% else %}Add{% endif %} Event{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Calendar editor</p>
+        <h1>{% if event %}Edit{% else %}Add{% endif %} event</h1>
+    </div>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid two-column">
+        <label>
+            Event name
+            <input type="text" name="name" value="{{ event.name if event else '' }}" required>
+        </label>
+        <label>
+            Venue
+            <input type="text" name="venue" value="{{ event.venue if event else '' }}" required>
+        </label>
+        <label>
+            Event date and time
+            <input type="datetime-local" name="event_date" value="{{ event.event_date.strftime('%Y-%m-%dT%H:%M') if event else '' }}" required>
+        </label>
+        <label>
+            Setup time
+            <input type="datetime-local" name="setup_time" value="{{ event.setup_time.strftime('%Y-%m-%dT%H:%M') if event and event.setup_time else '' }}">
+        </label>
+        <label>
+            Pack-down time
+            <input type="datetime-local" name="packdown_time" value="{{ event.packdown_time.strftime('%Y-%m-%dT%H:%M') if event and event.packdown_time else '' }}">
+        </label>
+        <label class="full-width">
+            Description
+            <textarea name="description" rows="4">{{ event.description if event else '' }}</textarea>
+        </label>
+        <div class="actions full-width">
+            <button class="button button-primary" type="submit">Save event</button>
+            <a class="button button-secondary" href="{{ url_for('events.index') }}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Events{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Production calendar</p>
+        <h1>Events</h1>
+    </div>
+    {% if current_user.role in manager_roles %}
+        <a class="button button-primary" href="{{ url_for('events.create') }}">Add event</a>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Venue</th>
+                    <th>Date</th>
+                    <th>Setup</th>
+                    <th>Pack-down</th>
+                    {% if current_user.role in manager_roles %}
+                        <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                    <tr>
+                        <td data-label="Name">{{ event.name }}</td>
+                        <td data-label="Venue">{{ event.venue }}</td>
+                        <td data-label="Date">{{ event.event_date.strftime("%d %b %Y %I:%M %p") }}</td>
+                        <td data-label="Setup">{{ event.setup_time.strftime("%d %b %Y %I:%M %p") if event.setup_time else "Not set" }}</td>
+                        <td data-label="Pack-down">{{ event.packdown_time.strftime("%d %b %Y %I:%M %p") if event.packdown_time else "Not set" }}</td>
+                        {% if current_user.role in manager_roles %}
+                            <td data-label="Actions" class="actions">
+                                <a href="{{ url_for('events.edit', event_id=event.id) }}">Edit</a>
+                                {% if current_user.role in ["Admin", "Teacher"] %}
+                                    <form method="post" action="{{ url_for('events.delete', event_id=event.id) }}">
+                                        <button type="submit" class="button-link">Delete</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty-state">No events created yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
