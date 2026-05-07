@@ -37,8 +37,16 @@
             <input type="password" name="smtp_password" placeholder="Leave blank to keep current password">
         </label>
         <label class="full-width">
-            From email
+            Default from email
             <input type="email" name="smtp_from_email" value="{{ settings.smtp_from_email }}" placeholder="noreply@school.edu" required>
+        </label>
+        <label>
+            Password reset sender
+            <input type="email" name="smtp_from_reset_email" value="{{ settings.smtp_from_reset_email }}" placeholder="passwordreset@stagetrack.xyz">
+        </label>
+        <label>
+            Welcome sender
+            <input type="email" name="smtp_from_welcome_email" value="{{ settings.smtp_from_welcome_email }}" placeholder="welcome@stagetrack.xyz">
         </label>
         <div class="actions full-width">
             <button class="button button-primary" type="submit">Save email settings</button>
@@ -54,6 +62,14 @@
         <label>
             Test recipient email
             <input type="email" name="test_email" placeholder="you@example.com" required>
+        </label>
+        <label>
+            Test email type
+            <select name="email_type">
+                <option value="general">Default sender</option>
+                <option value="password_reset">Password reset sender</option>
+                <option value="welcome">Welcome sender</option>
+            </select>
         </label>
         <div class="actions">
             <button class="button button-secondary" type="submit">Send test email</button>

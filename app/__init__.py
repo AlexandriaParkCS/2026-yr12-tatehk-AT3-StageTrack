@@ -2,6 +2,7 @@ from pathlib import Path
 
 from flask import Flask, redirect, render_template, session, url_for
 from sqlalchemy import inspect, text
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .admin import admin_bp
 from .auth import auth_bp
@@ -16,6 +17,7 @@ from .tasks import tasks_bp
 def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
     Path(app.config["QR_FOLDER"]).mkdir(parents=True, exist_ok=True)
@@ -69,10 +71,19 @@ def create_app(config_class=Config):
 
 def ensure_schema_updates():
     inspector = inspect(db.engine)
-    if "user" not in inspector.get_table_names():
+    table_names = inspector.get_table_names()
+    if "user" not in table_names:
         return
 
     user_columns = {column["name"] for column in inspector.get_columns("user")}
     if "is_active" not in user_columns:
         db.session.execute(text("ALTER TABLE user ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
+        db.session.commit()
+
+    if "email_settings" in table_names:
+        email_columns = {column["name"] for column in inspector.get_columns("email_settings")}
+        if "smtp_from_reset_email" not in email_columns:
+            db.session.execute(text("ALTER TABLE email_settings ADD COLUMN smtp_from_reset_email VARCHAR(255) NOT NULL DEFAULT ''"))
+        if "smtp_from_welcome_email" not in email_columns:
+            db.session.execute(text("ALTER TABLE email_settings ADD COLUMN smtp_from_welcome_email VARCHAR(255) NOT NULL DEFAULT ''"))
         db.session.commit()

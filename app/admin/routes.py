@@ -21,17 +21,27 @@ def get_email_settings():
     return settings
 
 
-def email_settings_ready(settings):
-    return bool(settings.smtp_enabled and settings.smtp_host and settings.smtp_from_email)
+def get_sender_email(settings, email_type):
+    if email_type == "password_reset":
+        return settings.smtp_from_reset_email or settings.smtp_from_email
+    if email_type == "welcome":
+        return settings.smtp_from_welcome_email or settings.smtp_from_email
+    return settings.smtp_from_email
 
 
-def deliver_email(settings, recipient_email, subject, body):
-    if not email_settings_ready(settings):
+def email_settings_ready(settings, email_type="general"):
+    sender_email = get_sender_email(settings, email_type)
+    return bool(settings.smtp_enabled and settings.smtp_host and sender_email)
+
+
+def deliver_email(settings, recipient_email, subject, body, email_type="general"):
+    sender_email = get_sender_email(settings, email_type)
+    if not email_settings_ready(settings, email_type):
         return False
 
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = settings.smtp_from_email
+    message["From"] = sender_email
     message["To"] = recipient_email
     message.set_content(body)
 
@@ -52,7 +62,20 @@ def send_password_reset_email(user, reset_url):
         f"Use this link to choose a new password:\n{reset_url}\n\n"
         f"This link expires in {current_app.config['RESET_TOKEN_HOURS']} hours."
     )
-    return deliver_email(settings, user.email, "StageTrack Password Reset", body)
+    return deliver_email(settings, user.email, "StageTrack Password Reset", body, email_type="password_reset")
+
+
+def send_welcome_email(user, temporary_password):
+    settings = get_email_settings()
+    body = (
+        f"Welcome to StageTrack, {user.name}.\n\n"
+        "An administrator has created your account.\n\n"
+        f"Sign-in email: {user.email}\n"
+        f"Temporary password: {temporary_password}\n"
+        f"Role: {user.role}\n\n"
+        "Please sign in and change your password as soon as possible."
+    )
+    return deliver_email(settings, user.email, "Welcome to StageTrack", body, email_type="welcome")
 
 
 @admin_bp.route("/users")
@@ -86,6 +109,8 @@ def email_settings():
         if new_password:
             settings.smtp_password = new_password
         settings.smtp_from_email = request.form.get("smtp_from_email", "").strip().lower()
+        settings.smtp_from_reset_email = request.form.get("smtp_from_reset_email", "").strip().lower()
+        settings.smtp_from_welcome_email = request.form.get("smtp_from_welcome_email", "").strip().lower()
         settings.smtp_enabled = request.form.get("smtp_enabled") == "on"
         db.session.commit()
         flash("Email settings saved.", "success")
@@ -110,6 +135,7 @@ def test_email_settings():
             recipient,
             "StageTrack SMTP Test",
             "This is a StageTrack SMTP test email. If you received it, the admin email settings are working.",
+            email_type=request.form.get("email_type", "general"),
         )
     except Exception as exc:
         flash(f"Test email failed: {exc}", "error")
@@ -147,7 +173,16 @@ def create_user():
             )
             db.session.add(user)
             db.session.commit()
-            flash("User account created.", "success")
+            try:
+                welcome_sent = send_welcome_email(user, password)
+            except Exception as exc:
+                flash(f"User account created, but welcome email failed: {exc}", "error")
+                return redirect(url_for("admin.users"))
+
+            if welcome_sent:
+                flash("User account created and welcome email sent.", "success")
+            else:
+                flash("User account created. Welcome email was skipped because welcome email settings are incomplete.", "success")
             return redirect(url_for("admin.users"))
 
     return render_template("admin/form.html", roles=ROLES)

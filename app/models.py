@@ -118,5 +118,7 @@ class EmailSettings(db.Model):
     smtp_username = db.Column(db.String(255), default="")
     smtp_password = db.Column(db.String(255), default="")
     smtp_from_email = db.Column(db.String(255), nullable=False, default="")
+    smtp_from_reset_email = db.Column(db.String(255), nullable=False, default="")
+    smtp_from_welcome_email = db.Column(db.String(255), nullable=False, default="")
     smtp_enabled = db.Column(db.Boolean, nullable=False, default=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
