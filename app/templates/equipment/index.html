@@ -5,6 +5,7 @@
     <div>
         <p class="eyebrow">Inventory</p>
         <h1>Equipment</h1>
+        <p>Keep gear readable, searchable, and easy to manage from backstage or side of stage.</p>
     </div>
     {% if current_user.role in manager_roles %}
         <a class="button button-primary" href="{{ url_for('equipment.create') }}">Add equipment</a>

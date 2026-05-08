@@ -78,7 +78,11 @@ def ensure_schema_updates():
     user_columns = {column["name"] for column in inspector.get_columns("user")}
     if "is_active" not in user_columns:
         db.session.execute(text("ALTER TABLE user ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
-        db.session.commit()
+    if "phone_number" not in user_columns:
+        db.session.execute(text("ALTER TABLE user ADD COLUMN phone_number VARCHAR(50)"))
+    if "contact_details" not in user_columns:
+        db.session.execute(text("ALTER TABLE user ADD COLUMN contact_details TEXT"))
+    db.session.commit()
 
     if "email_settings" in table_names:
         email_columns = {column["name"] for column in inspector.get_columns("email_settings")}

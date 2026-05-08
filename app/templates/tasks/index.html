@@ -5,7 +5,7 @@
     <div>
         <p class="eyebrow">{{ "Crew coordination" if is_manager else "My run sheet" }}</p>
         <h1>{{ "Tasks" if is_manager else "My Tasks" }}</h1>
-        <p>
+        <p class="support-copy">
             {% if is_manager %}
                 Assign and track crew work across your events.
             {% else %}

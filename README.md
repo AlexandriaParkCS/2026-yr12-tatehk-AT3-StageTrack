@@ -6,6 +6,8 @@ Phase 1 Flask scaffold for a school production and backstage operations platform
 
 - Session-based authentication with role support
 - Admin user management for access control, roles, and password resets
+- Self-service password reset from the login screen
+- User account page for profile updates and password changes
 - Dashboard with inventory and event summary cards
 - Equipment inventory CRUD with search and category filters
 - Event management CRUD with production schedule fields

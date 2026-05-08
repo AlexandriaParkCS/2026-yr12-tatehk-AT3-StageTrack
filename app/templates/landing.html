@@ -2,12 +2,14 @@
 {% block title %}Backstage OPS{% endblock %}
 {% block content %}
 <section class="hero">
-    <div>
-        <p class="eyebrow">School production workflow</p>
-        <h1>Keep equipment, events, and student crew in sync.</h1>
+    <div class="hero-content">
+        <p class="hero-badge">School production workflow</p>
+        <div class="hero-brand">
+            <img class="hero-logo" src="{{ url_for('static', filename='images/stagetrack-logo.png') }}" alt="StageTrack">
+            <h1 class="hero-title"><span>Stage</span><span class="gold">Track</span></h1>
+        </div>
         <p class="hero-copy">
-            A mobile-friendly platform for backstage teams to track inventory, plan event setups,
-            and keep production tasks visible during busy show days.
+            Keep equipment, event logistics, and student crew tasks in one fast, mobile-friendly control system built for busy rehearsal rooms, assemblies, and show nights.
         </p>
         <div class="hero-actions">
             {% if registration_open %}
@@ -15,22 +17,37 @@
             {% endif %}
             <a class="button button-secondary" href="{{ url_for('auth.login') }}">Sign in</a>
         </div>
+        <div class="hero-highlights">
+            <article class="highlight-pill">
+                <span>Inventory</span>
+                <strong>Track what is out, missing, or damaged</strong>
+            </article>
+            <article class="highlight-pill">
+                <span>Events</span>
+                <strong>Keep setup times and venues organised</strong>
+            </article>
+            <article class="highlight-pill">
+                <span>Crew</span>
+                <strong>Give students a clear run sheet on mobile</strong>
+            </article>
+        </div>
     </div>
     <aside class="hero-panel">
         <p class="eyebrow">Live floor view</p>
-        <h2>Built for quick decisions during busy bump-ins.</h2>
-        <div class="hero-metrics">
-            <article>
-                <span>Inventory</span>
-                <strong>Track gear fast</strong>
+        <h2>Built for faster pack-ins, clearer tasks, and fewer backstage mistakes.</h2>
+        <p class="support-copy">The design direction leans into your black-and-gold logo so the whole app feels like a real stage-tech platform instead of a generic school portal.</p>
+        <div class="hero-panel-grid">
+            <article class="hero-panel-card">
+                <span>Quick access</span>
+                <strong>Students can check their next task in seconds</strong>
             </article>
-            <article>
-                <span>Events</span>
-                <strong>Run cleaner setups</strong>
+            <article class="hero-panel-card">
+                <span>Clean workflow</span>
+                <strong>Teachers and stage managers stay on top of setup</strong>
             </article>
-            <article>
-                <span>Crew</span>
-                <strong>Keep tasks visible</strong>
+            <article class="hero-panel-card">
+                <span>Production feel</span>
+                <strong>Designed to feel sharp on both phone and laptop</strong>
             </article>
         </div>
     </aside>
@@ -39,18 +56,18 @@
 <section class="feature-strip">
     <article class="mini-panel">
         <p class="eyebrow">Equipment</p>
-        <h2>Know what is missing before the show starts.</h2>
-        <p>Inventory, status tracking, and locations stay visible from a phone or laptop.</p>
+        <h2>Know what is missing before the audience walks in.</h2>
+        <p class="support-copy">Inventory, status updates, and locations stay readable from a phone without making the interface feel cramped.</p>
     </article>
     <article class="mini-panel">
         <p class="eyebrow">Coordination</p>
-        <h2>Give students a simple run sheet they can actually follow.</h2>
-        <p>Tasks, due times, and event details stay in one place instead of scattered messages.</p>
+        <h2>Give students a run sheet they can actually follow.</h2>
+        <p class="support-copy">Tasks, due times, and event details stay in one place instead of disappearing into chats or paper notes.</p>
     </article>
     <article class="mini-panel">
         <p class="eyebrow">Admin</p>
-        <h2>Control access, roles, and password resets from one screen.</h2>
-        <p>Super admins can manage people and email settings without digging through code.</p>
+        <h2>Control access, roles, and emails from one place.</h2>
+        <p class="support-copy">Super admins can manage accounts and email settings without needing to touch the code or hosting dashboard.</p>
     </article>
 </section>
 {% endblock %}

@@ -5,6 +5,7 @@
     <div>
         <p class="eyebrow">Production calendar</p>
         <h1>Events</h1>
+        <p>Manage upcoming performances, rehearsals, and school events without the page feeling overloaded.</p>
     </div>
     {% if current_user.role in manager_roles %}
         <a class="button button-primary" href="{{ url_for('events.create') }}">Add event</a>

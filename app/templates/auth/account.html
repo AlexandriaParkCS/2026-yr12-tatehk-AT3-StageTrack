@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}My Account{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">My account</p>
+        <h1>Profile and login details</h1>
+        <p>Keep your personal details up to date and manage your password from one place.</p>
+    </div>
+</section>
+
+<section class="utility-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Profile details</h2>
+        </div>
+        <form method="post" class="form-grid">
+            <input type="hidden" name="action" value="profile">
+            <label>
+                Full name
+                <input type="text" name="name" value="{{ user.name }}" required>
+            </label>
+            <label>
+                Email
+                <input type="email" name="email" value="{{ user.email }}" required>
+            </label>
+            <label>
+                Phone number
+                <input type="text" name="phone_number" value="{{ user.phone_number or '' }}" placeholder="0400 000 000">
+            </label>
+            <label>
+                Role
+                <input type="text" value="{{ user.role }}" readonly>
+            </label>
+            <label class="full-width">
+                Contact details
+                <textarea name="contact_details" rows="5" placeholder="Add any useful contact notes, preferred contact info, or backstage details.">{{ user.contact_details or '' }}</textarea>
+            </label>
+            <div class="actions">
+                <button class="button button-primary" type="submit">Save details</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Change password</h2>
+        </div>
+        <form method="post" class="form-grid">
+            <input type="hidden" name="action" value="password">
+            <label>
+                Current password
+                <input type="password" name="current_password" required>
+            </label>
+            <label>
+                New password
+                <input type="password" name="new_password" required>
+            </label>
+            <label>
+                Confirm new password
+                <input type="password" name="confirm_password" required>
+            </label>
+            <div class="actions">
+                <button class="button button-primary" type="submit">Update password</button>
+            </div>
+        </form>
+    </section>
+</section>
+{% endblock %}

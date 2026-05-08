@@ -10,10 +10,10 @@
     <div class="app-backdrop"></div>
     <header class="site-header">
         <a class="brand" href="{{ url_for('home') }}">
-            <span class="brand-mark">ST</span>
+            <img class="brand-logo" src="{{ url_for('static', filename='images/stagetrack-logo.png') }}" alt="StageTrack logo">
             <span class="brand-copy">
                 <strong>StageTrack</strong>
-                <span>Production control</span>
+                <span>Backstage management</span>
             </span>
         </a>
         <nav class="site-nav">
@@ -22,6 +22,7 @@
                 <a href="{{ url_for('equipment.index') }}">Equipment</a>
                 <a href="{{ url_for('events.index') }}">Events</a>
                 <a href="{{ url_for('tasks.index') }}">Tasks</a>
+                <a href="{{ url_for('auth.account') }}">Account</a>
                 {% if current_user.role == "Admin" %}
                     <a href="{{ url_for('admin.users') }}">Admin</a>
                 {% endif %}

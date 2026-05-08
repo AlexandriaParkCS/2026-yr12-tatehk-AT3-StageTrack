@@ -4,6 +4,7 @@ from functools import wraps
 from flask import flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from ..email_service import build_password_reset_url, issue_password_reset_token, send_password_reset_email
 from ..extensions import db
 from ..models import PasswordResetToken, User
 from . import auth_bp
@@ -115,11 +116,81 @@ def login():
     return render_template("auth/login.html")
 
 
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        user = User.query.filter_by(email=email).first()
+
+        if user and user.is_active:
+            reset_token = issue_password_reset_token(user)
+            reset_url = build_password_reset_url(reset_token)
+
+            try:
+                send_password_reset_email(user, reset_url)
+            except Exception:
+                pass
+
+        flash("If that email exists in StageTrack, a password reset link has been sent.", "success")
+        return redirect(url_for("auth.login"))
+
+    return render_template("auth/forgot_password.html")
+
+
 @auth_bp.route("/logout")
 def logout():
     session.clear()
     flash("You have been signed out.", "success")
     return redirect(url_for("home"))
+
+
+@auth_bp.route("/account", methods=["GET", "POST"])
+@login_required
+def account():
+    user = current_user()
+
+    if request.method == "POST":
+        action = request.form.get("action", "profile")
+
+        if action == "profile":
+            name = request.form.get("name", "").strip()
+            email = request.form.get("email", "").strip().lower()
+            phone_number = request.form.get("phone_number", "").strip()
+            contact_details = request.form.get("contact_details", "").strip()
+
+            existing_user = User.query.filter(User.email == email, User.id != user.id).first()
+
+            if not name or not email:
+                flash("Name and email are required.", "error")
+            elif existing_user:
+                flash("That email address is already being used by another account.", "error")
+            else:
+                user.name = name
+                user.email = email
+                user.phone_number = phone_number or None
+                user.contact_details = contact_details or None
+                db.session.commit()
+                flash("Account details updated.", "success")
+                return redirect(url_for("auth.account"))
+
+        if action == "password":
+            current_password = request.form.get("current_password", "")
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+
+            if not check_password_hash(user.password_hash, current_password):
+                flash("Your current password is incorrect.", "error")
+            elif not new_password:
+                flash("Please enter a new password.", "error")
+            elif new_password != confirm_password:
+                flash("New passwords do not match.", "error")
+            else:
+                user.password_hash = generate_password_hash(new_password)
+                db.session.commit()
+                flash("Password updated successfully.", "success")
+                return redirect(url_for("auth.account"))
+
+    return render_template("auth/account.html", user=user)
 
 
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
