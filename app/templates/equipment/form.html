@@ -9,7 +9,7 @@
 </section>
 
 <section class="panel">
-    <form method="post" class="form-grid two-column">
+    <form method="post" enctype="multipart/form-data" class="form-grid two-column">
         <label>
             Name
             <input type="text" name="name" value="{{ item.name if item else '' }}" required>
@@ -47,6 +47,19 @@
             Description
             <textarea name="description" rows="4">{{ item.description if item else '' }}</textarea>
         </label>
+        <label class="full-width">
+            Equipment image
+            <input type="file" name="image" accept=".png,.jpg,.jpeg,.gif,.webp">
+        </label>
+        {% if item and item.image_path %}
+            <div class="full-width image-editor">
+                <img class="detail-image form-image-preview" src="{{ url_for('static', filename='uploads/' ~ item.image_path) }}" alt="{{ item.name }}">
+                <label class="checkbox-row">
+                    <input type="checkbox" name="remove_image">
+                    <span>Remove current image</span>
+                </label>
+            </div>
+        {% endif %}
         <div class="actions full-width">
             <button class="button button-primary" type="submit">Save equipment</button>
             <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Cancel</a>

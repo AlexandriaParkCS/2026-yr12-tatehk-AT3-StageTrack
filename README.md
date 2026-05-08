@@ -77,6 +77,7 @@ If you prefer to create the service without the Blueprint:
 
 - QR code generation and scan-based check-in/check-out
 - Crew task assignment and checklist tracking
+- PDF export for printable documents such as venue setup checklists, task sheets, and event pack-down lists
 - Damage reports with image uploads
 - Email notifications and password reset flow
 - Migration tooling for PostgreSQL support

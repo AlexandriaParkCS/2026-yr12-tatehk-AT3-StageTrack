@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }}{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Equipment detail</p>
+        <h1>{{ item.name }}</h1>
+        <p>View the key inventory information for this item in one place.</p>
+    </div>
+    <div class="actions">
+        {% if current_user.role in manager_roles %}
+            <a class="button button-secondary" href="{{ url_for('equipment.edit', item_id=item.id) }}">Edit item</a>
+        {% endif %}
+        <a class="button button-primary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
+    </div>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        {% if item.image_path %}
+            <img class="detail-image" src="{{ url_for('static', filename='uploads/' ~ item.image_path) }}" alt="{{ item.name }}">
+        {% else %}
+            <div class="detail-image detail-image-placeholder">No equipment image uploaded yet.</div>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Category</strong>
+                <div class="dashboard-meta"><span>{{ item.category }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Status</strong>
+                <div class="dashboard-meta"><span class="status-pill">{{ item.status }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Serial number</strong>
+                <div class="dashboard-meta"><span>{{ item.serial_number or "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Condition</strong>
+                <div class="dashboard-meta"><span>{{ item.condition or "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Location</strong>
+                <div class="dashboard-meta"><span>{{ item.location or "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Description</strong>
+                <div class="dashboard-meta"><span>{{ item.description or "No description yet." }}</span></div>
+            </article>
+        </div>
+    </section>
+</section>
+{% endblock %}

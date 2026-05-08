@@ -14,7 +14,7 @@
 
 <section class="panel">
     <form method="get" class="filter-bar">
-        <input type="search" name="q" placeholder="Search equipment" value="{{ current_search }}">
+        <input type="search" name="q" placeholder="Search name, serial, location, or description" value="{{ current_search }}">
         <select name="category">
             <option value="">All categories</option>
             {% for category in categories %}
@@ -28,6 +28,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>Image</th>
                     <th>Name</th>
                     <th>Category</th>
                     <th>Status</th>
@@ -40,12 +41,20 @@
             <tbody>
                 {% for item in equipment_items %}
                     <tr>
-                        <td data-label="Name">{{ item.name }}</td>
+                        <td data-label="Image">
+                            {% if item.image_path %}
+                                <img class="table-thumb" src="{{ url_for('static', filename='uploads/' ~ item.image_path) }}" alt="{{ item.name }}">
+                            {% else %}
+                                <div class="table-thumb table-thumb-placeholder">No image</div>
+                            {% endif %}
+                        </td>
+                        <td data-label="Name"><a href="{{ url_for('equipment.detail', item_id=item.id) }}"><strong>{{ item.name }}</strong></a></td>
                         <td data-label="Category">{{ item.category }}</td>
                         <td data-label="Status"><span class="status-pill">{{ item.status }}</span></td>
                         <td data-label="Location">{{ item.location or "Not set" }}</td>
                         {% if current_user.role in manager_roles %}
                             <td data-label="Actions" class="actions">
+                                <a href="{{ url_for('equipment.detail', item_id=item.id) }}">View</a>
                                 <a href="{{ url_for('equipment.edit', item_id=item.id) }}">Edit</a>
                                 {% if current_user.role in ["Admin", "Teacher"] %}
                                     <form method="post" action="{{ url_for('equipment.delete', item_id=item.id) }}">
@@ -57,7 +66,7 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="5" class="empty-state">No equipment found.</td>
+                        <td colspan="6" class="empty-state">No equipment found.</td>
                     </tr>
                 {% endfor %}
             </tbody>

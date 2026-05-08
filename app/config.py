@@ -24,6 +24,9 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = str(BASE_DIR / "app" / "static" / "uploads")
     QR_FOLDER = str(BASE_DIR / "app" / "static" / "qr_codes")
+    BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
     RESET_TOKEN_HOURS = 24
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
     PREFERRED_URL_SCHEME = os.getenv("PREFERRED_URL_SCHEME", "http")
+    MAX_CONTENT_LENGTH = 8 * 1024 * 1024
+    ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
