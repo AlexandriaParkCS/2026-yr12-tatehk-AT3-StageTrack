@@ -42,6 +42,10 @@ body {
     position: relative;
 }
 
+body.modal-open {
+    overflow: hidden;
+}
+
 .app-backdrop {
     position: fixed;
     inset: 0;
@@ -748,6 +752,119 @@ tbody tr:hover {
     line-height: 1.6;
 }
 
+.coming-soon-shell {
+    min-height: calc(100vh - 180px);
+    display: grid;
+    place-items: center;
+}
+
+.coming-soon-card {
+    position: relative;
+    overflow: hidden;
+    width: min(760px, 100%);
+    padding: 3rem 2rem;
+    text-align: center;
+    border-radius: 34px;
+    background:
+        radial-gradient(circle at top center, rgba(255, 211, 61, 0.16), transparent 24%),
+        linear-gradient(180deg, rgba(20, 23, 27, 0.98), rgba(12, 14, 17, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow);
+}
+
+.coming-soon-glow {
+    position: absolute;
+    inset: auto 50% -120px auto;
+    width: 340px;
+    height: 340px;
+    transform: translateX(50%);
+    background: radial-gradient(circle, rgba(255, 211, 61, 0.22), transparent 65%);
+    pointer-events: none;
+}
+
+.coming-soon-logo,
+.coming-soon-title,
+.coming-soon-copy,
+.coming-soon-points,
+.coming-soon-note,
+.coming-soon-card .hero-actions,
+.coming-soon-card .hero-badge {
+    position: relative;
+    z-index: 1;
+}
+
+.coming-soon-logo {
+    width: min(340px, 72vw);
+    margin: 0 auto 1.5rem;
+    filter: drop-shadow(0 0 35px rgba(255, 211, 61, 0.14));
+}
+
+.coming-soon-title {
+    margin: 0.6rem 0 1rem;
+    font-size: clamp(2.3rem, 6vw, 4.2rem);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+}
+
+.coming-soon-copy {
+    max-width: 54ch;
+    margin: 0 auto;
+    color: var(--muted);
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+.coming-soon-points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    justify-content: center;
+    margin: 1.4rem 0 1.7rem;
+}
+
+.coming-soon-points span {
+    padding: 0.72rem 0.95rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--ink);
+    font-size: 0.92rem;
+}
+
+.coming-soon-note {
+    margin: 1rem auto 0;
+    max-width: 48ch;
+    color: #8d95a0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(2, 3, 4, 0.72);
+    backdrop-filter: blur(10px);
+}
+
+.modal-backdrop[hidden] {
+    display: none !important;
+}
+
+.modal-card {
+    width: min(620px, 100%);
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    padding: 1.4rem;
+    border-radius: 26px;
+    background: linear-gradient(180deg, rgba(20, 23, 27, 0.98), rgba(12, 14, 17, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow);
+}
+
 .detail-image {
     width: 100%;
     max-height: 520px;
@@ -836,6 +953,11 @@ tbody tr:hover {
     .auth-card,
     .mini-panel {
         padding: 1.15rem;
+    }
+
+    .coming-soon-card {
+        padding: 2rem 1.2rem;
+        border-radius: 26px;
     }
 
     .hero-brand {

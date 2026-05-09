@@ -12,6 +12,7 @@ from ..email_service import (
 )
 from ..extensions import db
 from ..models import PasswordResetToken, User
+from ..site_service import get_site_settings
 from . import admin_bp
 
 
@@ -54,6 +55,21 @@ def email_settings():
         return redirect(url_for("admin.email_settings"))
 
     return render_template("admin/email_settings.html", settings=settings)
+
+
+@admin_bp.route("/settings/site", methods=["GET", "POST"])
+@role_required("Admin")
+def site_settings():
+    settings = get_site_settings()
+
+    if request.method == "POST":
+        settings.coming_soon_enabled = request.form.get("coming_soon_enabled") == "on"
+        settings.enquiry_recipient_email = request.form.get("enquiry_recipient_email", "").strip().lower() or None
+        db.session.commit()
+        flash("Site settings saved.", "success")
+        return redirect(url_for("admin.site_settings"))
+
+    return render_template("admin/site_settings.html", settings=settings)
 
 
 @admin_bp.route("/settings/email/test", methods=["POST"])

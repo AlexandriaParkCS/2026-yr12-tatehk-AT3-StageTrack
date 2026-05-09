@@ -8,6 +8,7 @@
         <p>Manage staff and student accounts, update permissions, and keep access under control without digging through settings screens.</p>
     </div>
     <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('admin.site_settings') }}">Site settings</a>
         <a class="button button-secondary" href="{{ url_for('admin.email_settings') }}">Email settings</a>
         <a class="button button-primary" href="{{ url_for('admin.create_user') }}">Add user</a>
     </div>

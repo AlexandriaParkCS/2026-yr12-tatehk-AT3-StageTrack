@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Site Settings{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Super admin</p>
+        <h1>Site settings</h1>
+        <p>Control what visitors see when they open the StageTrack website.</p>
+    </div>
+    <a class="button button-secondary" href="{{ url_for('admin.users') }}">Back to admin</a>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid">
+        <label class="checkbox-row">
+            <input type="checkbox" name="coming_soon_enabled" {% if settings.coming_soon_enabled %}checked{% endif %}>
+            <span>Show the public coming soon landing page</span>
+        </label>
+        <label>
+            Enquiry recipient email
+            <input type="email" name="enquiry_recipient_email" value="{{ settings.enquiry_recipient_email or '' }}" placeholder="hello@stagetrack.xyz">
+        </label>
+        <p class="support-copy">
+            When this is turned on, visitors see the coming soon page first. Staff can still use the staff access button to sign in.
+            When it is turned off, the normal public StageTrack landing page is shown instead.
+        </p>
+        <p class="support-copy">
+            Public enquiries from the website contact form will be sent to the email address above, using the SMTP settings configured in Admin.
+        </p>
+        <div class="actions">
+            <button class="button button-primary" type="submit">Save site settings</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

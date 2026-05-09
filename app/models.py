@@ -124,3 +124,10 @@ class EmailSettings(db.Model):
     smtp_from_welcome_email = db.Column(db.String(255), nullable=False, default="")
     smtp_enabled = db.Column(db.Boolean, nullable=False, default=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class SiteSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    coming_soon_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    enquiry_recipient_email = db.Column(db.String(255))
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

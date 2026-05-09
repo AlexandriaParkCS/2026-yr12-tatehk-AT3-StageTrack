@@ -217,6 +217,41 @@ def send_welcome_email(user, temporary_password):
     )
 
 
+def send_enquiry_email(recipient_email, enquiry_data):
+    settings = get_email_settings()
+    body = (
+        "A new StageTrack website enquiry has been submitted.\n\n"
+        f"Name: {enquiry_data['name']}\n"
+        f"Email: {enquiry_data['email']}\n"
+        f"Contact: {enquiry_data['contact']}\n"
+        f"Use case: {enquiry_data['use_case']}\n"
+        f"Message: {enquiry_data['message'] or 'No extra message provided.'}"
+    )
+    html_body = build_email_html(
+        preheader="A new StageTrack enquiry was submitted.",
+        heading="New Enquiry",
+        intro="A visitor has sent a new enquiry from the StageTrack public website.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0 0 10px;"><strong style="color:#ffd33d;">Name</strong><br>{escape(enquiry_data['name'])}</p>
+                <p style="margin:0 0 10px;"><strong style="color:#ffd33d;">Email</strong><br>{escape(enquiry_data['email'])}</p>
+                <p style="margin:0 0 10px;"><strong style="color:#ffd33d;">Contact</strong><br>{escape(enquiry_data['contact'])}</p>
+                <p style="margin:0 0 10px;"><strong style="color:#ffd33d;">Use case</strong><br>{escape(enquiry_data['use_case'])}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Message</strong><br>{escape(enquiry_data['message'] or 'No extra message provided.')}</p>
+            </div>
+        """,
+        footer_note="This enquiry was sent from the public StageTrack website."
+    )
+    return deliver_email(
+        settings,
+        recipient_email,
+        f"StageTrack enquiry from {enquiry_data['name']}",
+        body,
+        email_type="general",
+        html_body=html_body,
+    )
+
+
 def issue_password_reset_token(user):
     PasswordResetToken.query.filter_by(user_id=user.id, used_at=None).update({"used_at": datetime.utcnow()})
 
