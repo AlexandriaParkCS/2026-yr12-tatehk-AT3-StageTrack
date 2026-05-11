@@ -716,6 +716,11 @@ tbody tr:hover {
     letter-spacing: 0.02em;
 }
 
+.status-pill-danger {
+    background: rgba(255, 125, 125, 0.14);
+    color: var(--danger);
+}
+
 .dashboard-list {
     display: grid;
     gap: 0.85rem;

@@ -31,6 +31,13 @@
         </div>
         <strong>{{ stats.open_tasks }}</strong>
     </article>
+    <article class="stat-card {% if stats.overdue_items %}alert{% endif %}">
+        <div class="stat-label">
+            <span>Overdue gear</span>
+            <span class="stat-icon">OD</span>
+        </div>
+        <strong>{{ stats.overdue_items }}</strong>
+    </article>
 </section>
 
 <section class="content-grid">
@@ -79,6 +86,30 @@
                 </div>
             {% else %}
                 <p class="empty-state">No events scheduled yet.</p>
+            {% endif %}
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2>{{ "Overdue equipment" if current_user.role in manager_roles else "My overdue equipment" }}</h2>
+                <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Open inventory</a>
+            </div>
+            {% if stats.overdue_checkouts %}
+                <div class="dashboard-list">
+                    {% for checkout in stats.overdue_checkouts %}
+                        <article class="dashboard-item">
+                            <strong>{{ checkout.equipment.name }}</strong>
+                            <div class="dashboard-meta">
+                                <span>{{ checkout.user.name }}</span>
+                                <span>{{ checkout.event.name if checkout.event else "No event linked" }}</span>
+                                <span>Due {{ checkout.due_at.strftime("%d %b %Y %I:%M %p") }}</span>
+                                <span class="status-pill status-pill-danger">Overdue</span>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state">No equipment is overdue right now.</p>
             {% endif %}
         </section>
 

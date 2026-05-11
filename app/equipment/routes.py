@@ -16,6 +16,7 @@ from . import equipment_bp
 CATEGORIES = ["Audio", "Lighting", "Cables", "Instruments", "Props", "AV Equipment", "Staging Gear"]
 STATUSES = ["Available", "In Use", "Missing", "Damaged", "Under Repair"]
 UPLOAD_SUBFOLDER = "equipment"
+DATETIME_LOCAL_FORMAT = "%Y-%m-%dT%H:%M"
 
 
 def allowed_image(filename):
@@ -93,6 +94,12 @@ def active_checkout_for_item(item_id):
     return EquipmentCheckout.query.filter_by(equipment_id=item_id, return_time=None).order_by(EquipmentCheckout.checkout_time.desc()).first()
 
 
+def parse_due_at(value):
+    if not value:
+        return None
+    return datetime.strptime(value, DATETIME_LOCAL_FORMAT)
+
+
 @equipment_bp.route("/")
 @login_required
 def index():
@@ -156,6 +163,7 @@ def detail(item_id):
         checkout_history=checkout_history,
         crew_users=crew_users,
         events=events,
+        now=datetime.utcnow(),
         public_qr_target=build_qr_target_url(item.id),
         scanned=request.args.get("scanner") == "1",
     )
@@ -247,6 +255,13 @@ def checkout(item_id):
     event_id = request.form.get("event_id", type=int)
     assignee = db.session.get(User, user_id) if user_id else None
     event = db.session.get(Event, event_id) if event_id else None
+    due_at_value = request.form.get("due_at", "").strip()
+
+    try:
+        due_at = parse_due_at(due_at_value)
+    except ValueError:
+        flash("Please enter a valid due date and time.", "error")
+        return redirect(url_for("equipment.detail", item_id=item.id, scanner=1))
 
     if active_checkout:
         flash("This item is already checked out.", "error")
@@ -256,11 +271,14 @@ def checkout(item_id):
         flash("Select an active crew member or staff member.", "error")
     elif event_id and not event:
         flash("Select a valid event or leave the event field blank.", "error")
+    elif due_at and due_at <= datetime.utcnow():
+        flash("The due date must be in the future.", "error")
     else:
         checkout_record = EquipmentCheckout(
             equipment_id=item.id,
             user_id=assignee.id,
             event_id=event.id if event else None,
+            due_at=due_at,
             status="Checked Out",
         )
         item.status = "In Use"

@@ -73,6 +73,7 @@ class EquipmentCheckout(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     event_id = db.Column(db.Integer, db.ForeignKey("event.id"))
     checkout_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    due_at = db.Column(db.DateTime)
     return_time = db.Column(db.DateTime)
     status = db.Column(db.String(50), nullable=False, default="Checked Out")
 

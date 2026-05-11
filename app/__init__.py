@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, redirect, render_template, session, url_for
@@ -12,7 +13,7 @@ from .email_service import send_enquiry_email
 from .equipment import equipment_bp
 from .events import events_bp
 from .extensions import db
-from .models import Event, Equipment, Task, User
+from .models import EquipmentCheckout, Event, Equipment, Task, User
 from .site_service import get_site_settings
 from .tasks import tasks_bp
 
@@ -111,15 +112,23 @@ def create_app(config_class=Config):
         user_id = session["user_id"]
         user = db.session.get(User, user_id)
         task_snapshot_query = Task.query
+        overdue_query = EquipmentCheckout.query.filter(
+            EquipmentCheckout.return_time.is_(None),
+            EquipmentCheckout.due_at.is_not(None),
+            EquipmentCheckout.due_at < datetime.utcnow(),
+        )
 
         if user.role not in {"Admin", "Teacher", "Stage Manager"}:
             task_snapshot_query = task_snapshot_query.filter_by(assigned_to=user_id)
+            overdue_query = overdue_query.filter_by(user_id=user_id)
 
         stats = {
             "equipment_total": Equipment.query.count(),
             "missing_items": Equipment.query.filter_by(status="Missing").count(),
             "upcoming_events": Event.query.order_by(Event.event_date.asc()).limit(5).all(),
             "open_tasks": Task.query.filter(Task.status != "Completed").count(),
+            "overdue_items": overdue_query.count(),
+            "overdue_checkouts": overdue_query.order_by(EquipmentCheckout.due_at.asc()).limit(5).all(),
             "task_snapshot": task_snapshot_query.order_by(Task.due_time.asc(), Task.created_at.desc()).limit(5).all(),
         }
         return render_template("dashboard.html", stats=stats)
@@ -171,7 +180,9 @@ def ensure_schema_updates():
         checkout_columns = {column["name"] for column in inspector.get_columns("equipment_checkout")}
         if "event_id" not in checkout_columns:
             db.session.execute(text("ALTER TABLE equipment_checkout ADD COLUMN event_id INTEGER"))
-            db.session.commit()
+        if "due_at" not in checkout_columns:
+            db.session.execute(text("ALTER TABLE equipment_checkout ADD COLUMN due_at DATETIME"))
+        db.session.commit()
 
 
 app = create_app()

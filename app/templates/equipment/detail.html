@@ -94,6 +94,16 @@
                         <span>Assigned to {{ active_checkout.user.name }}</span>
                         <span>{{ active_checkout.checkout_time.strftime("%d %b %Y %I:%M %p") }}</span>
                         <span>{{ active_checkout.event.name if active_checkout.event else "No event linked" }}</span>
+                        <span>
+                            {% if active_checkout.due_at %}
+                                Due {{ active_checkout.due_at.strftime("%d %b %Y %I:%M %p") }}
+                            {% else %}
+                                No due date set
+                            {% endif %}
+                        </span>
+                        {% if active_checkout.due_at and active_checkout.due_at < now %}
+                            <span class="status-pill status-pill-danger">Overdue</span>
+                        {% endif %}
                     </div>
                 </article>
             </div>
@@ -126,6 +136,10 @@
                             {% endfor %}
                         </select>
                     </label>
+                    <label>
+                        Due date
+                        <input type="datetime-local" name="due_at">
+                    </label>
                     <div class="actions">
                         <button class="button button-primary" type="submit">Lend out equipment</button>
                     </div>
@@ -147,7 +161,17 @@
                     <div class="dashboard-meta">
                         <span>Out: {{ checkout.checkout_time.strftime("%d %b %Y %I:%M %p") }}</span>
                         <span>{{ checkout.event.name if checkout.event else "No event linked" }}</span>
+                        <span>
+                            {% if checkout.due_at %}
+                                Due: {{ checkout.due_at.strftime("%d %b %Y %I:%M %p") }}
+                            {% else %}
+                                No due date set
+                            {% endif %}
+                        </span>
                         <span>{{ checkout.return_time.strftime("%d %b %Y %I:%M %p") if checkout.return_time else "Still checked out" }}</span>
+                        {% if not checkout.return_time and checkout.due_at and checkout.due_at < now %}
+                            <span class="status-pill status-pill-danger">Overdue</span>
+                        {% endif %}
                     </div>
                 </article>
             {% endfor %}
