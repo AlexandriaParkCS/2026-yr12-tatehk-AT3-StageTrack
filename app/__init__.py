@@ -33,6 +33,25 @@ def create_app(config_class=Config):
     app.register_blueprint(events_bp)
     app.register_blueprint(tasks_bp)
 
+    @app.before_request
+    def require_password_change():
+        user_id = session.get("user_id")
+        if not user_id:
+            return None
+
+        if request.endpoint in {
+            "auth.force_password_change",
+            "auth.logout",
+            "static",
+        }:
+            return None
+
+        user = db.session.get(User, user_id)
+        if user and user.must_change_password:
+            return redirect(url_for("auth.force_password_change"))
+
+        return None
+
     @app.route("/")
     def home():
         if session.get("user_id"):
@@ -126,6 +145,8 @@ def ensure_schema_updates():
     user_columns = {column["name"] for column in inspector.get_columns("user")}
     if "is_active" not in user_columns:
         db.session.execute(text("ALTER TABLE user ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
+    if "must_change_password" not in user_columns:
+        db.session.execute(text("ALTER TABLE user ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT 0"))
     if "phone_number" not in user_columns:
         db.session.execute(text("ALTER TABLE user ADD COLUMN phone_number VARCHAR(50)"))
     if "contact_details" not in user_columns:
@@ -144,6 +165,12 @@ def ensure_schema_updates():
         site_columns = {column["name"] for column in inspector.get_columns("site_settings")}
         if "enquiry_recipient_email" not in site_columns:
             db.session.execute(text("ALTER TABLE site_settings ADD COLUMN enquiry_recipient_email VARCHAR(255)"))
+            db.session.commit()
+
+    if "equipment_checkout" in table_names:
+        checkout_columns = {column["name"] for column in inspector.get_columns("equipment_checkout")}
+        if "event_id" not in checkout_columns:
+            db.session.execute(text("ALTER TABLE equipment_checkout ADD COLUMN event_id INTEGER"))
             db.session.commit()
 
 

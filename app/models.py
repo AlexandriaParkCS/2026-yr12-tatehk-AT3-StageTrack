@@ -8,6 +8,7 @@ class User(db.Model):
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    must_change_password = db.Column(db.Boolean, nullable=False, default=False)
     phone_number = db.Column(db.String(50))
     contact_details = db.Column(db.Text)
     role = db.Column(db.String(50), nullable=False, default="Viewer")
@@ -49,6 +50,7 @@ class Event(db.Model):
 
     tasks = db.relationship("Task", back_populates="event", lazy=True)
     checklist_items = db.relationship("ChecklistItem", back_populates="event", lazy=True)
+    checkouts = db.relationship("EquipmentCheckout", back_populates="event", lazy=True)
 
 
 class Task(db.Model):
@@ -69,12 +71,14 @@ class EquipmentCheckout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     equipment_id = db.Column(db.Integer, db.ForeignKey("equipment.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey("event.id"))
     checkout_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     return_time = db.Column(db.DateTime)
     status = db.Column(db.String(50), nullable=False, default="Checked Out")
 
     equipment = db.relationship("Equipment", back_populates="checkouts")
     user = db.relationship("User", back_populates="checkouts")
+    event = db.relationship("Event", back_populates="checkouts")
 
 
 class DamageReport(db.Model):

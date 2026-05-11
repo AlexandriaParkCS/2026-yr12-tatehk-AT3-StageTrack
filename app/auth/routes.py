@@ -110,6 +110,9 @@ def login():
         else:
             session.clear()
             session["user_id"] = user.id
+            if user.must_change_password:
+                flash("Please set a new password to finish activating your account.", "success")
+                return redirect(url_for("auth.force_password_change"))
             flash(f"Welcome back, {user.name}.", "success")
             return redirect(url_for("dashboard"))
 
@@ -186,11 +189,38 @@ def account():
                 flash("New passwords do not match.", "error")
             else:
                 user.password_hash = generate_password_hash(new_password)
+                user.must_change_password = False
                 db.session.commit()
                 flash("Password updated successfully.", "success")
                 return redirect(url_for("auth.account"))
 
     return render_template("auth/account.html", user=user)
+
+
+@auth_bp.route("/force-password-change", methods=["GET", "POST"])
+@login_required
+def force_password_change():
+    user = current_user()
+
+    if not user.must_change_password:
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not new_password:
+            flash("Please enter a new password.", "error")
+        elif new_password != confirm_password:
+            flash("Passwords do not match.", "error")
+        else:
+            user.password_hash = generate_password_hash(new_password)
+            user.must_change_password = False
+            db.session.commit()
+            flash("Password updated successfully. Your account is ready to use.", "success")
+            return redirect(url_for("dashboard"))
+
+    return render_template("auth/force_password_change.html")
 
 
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
@@ -212,6 +242,7 @@ def reset_password(token):
             flash("Passwords do not match.", "error")
         else:
             reset_token.user.password_hash = generate_password_hash(password)
+            reset_token.user.must_change_password = False
             reset_token.used_at = now
             db.session.commit()
             flash("Password updated. You can sign in now.", "success")

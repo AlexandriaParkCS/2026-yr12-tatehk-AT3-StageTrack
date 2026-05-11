@@ -122,6 +122,7 @@ def create_user():
                 name=name,
                 email=email,
                 password_hash=generate_password_hash(password),
+                must_change_password=True,
                 role=role,
             )
             db.session.add(user)

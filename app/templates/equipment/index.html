@@ -12,6 +12,10 @@
     {% endif %}
 </section>
 
+<section class="actions page-actions">
+    <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Open QR scanner</a>
+</section>
+
 <section class="panel">
     <form method="get" class="filter-bar">
         <input type="search" name="q" placeholder="Search name, serial, location, or description" value="{{ current_search }}">

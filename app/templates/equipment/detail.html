@@ -5,15 +5,24 @@
     <div>
         <p class="eyebrow">Equipment detail</p>
         <h1>{{ item.name }}</h1>
-        <p>View the key inventory information for this item in one place.</p>
+        <p>View the key inventory information for this item, along with its QR code and lend status.</p>
     </div>
     <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Scan another item</a>
         {% if current_user.role in manager_roles %}
             <a class="button button-secondary" href="{{ url_for('equipment.edit', item_id=item.id) }}">Edit item</a>
         {% endif %}
         <a class="button button-primary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
     </div>
 </section>
+
+{% if scanned %}
+    <section class="panel scanner-banner">
+        <p class="eyebrow">Scanned in StageTrack</p>
+        <h2>Equipment located and ready to manage</h2>
+        <p class="support-copy">This item was opened from the in-app scanner, so the checkout controls are ready below.</p>
+    </section>
+{% endif %}
 
 <section class="content-grid">
     <section class="panel">
@@ -52,5 +61,99 @@
             </article>
         </div>
     </section>
+</section>
+
+<section class="utility-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>QR code</h2>
+        </div>
+        <p class="support-copy">The same QR code works two ways: a normal camera opens the StageTrack site, and the in-app scanner brings you straight back to this item.</p>
+        <div class="qr-card">
+            <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ item.qr_code) }}" alt="QR code for {{ item.name }}">
+        </div>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>QR target</strong>
+                <div class="dashboard-meta">
+                    <span>{{ public_qr_target }}</span>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Checkout status</h2>
+        </div>
+        {% if active_checkout %}
+            <div class="dashboard-list">
+                <article class="dashboard-item">
+                    <strong>Currently checked out</strong>
+                    <div class="dashboard-meta">
+                        <span>Assigned to {{ active_checkout.user.name }}</span>
+                        <span>{{ active_checkout.checkout_time.strftime("%d %b %Y %I:%M %p") }}</span>
+                        <span>{{ active_checkout.event.name if active_checkout.event else "No event linked" }}</span>
+                    </div>
+                </article>
+            </div>
+            {% if current_user.role in manager_roles %}
+                <form method="post" action="{{ url_for('equipment.checkin', item_id=item.id) }}" class="form-grid">
+                    <div class="actions">
+                        <button class="button button-primary" type="submit">Check in equipment</button>
+                    </div>
+                </form>
+            {% endif %}
+        {% else %}
+            <p class="support-copy">This item is currently available for checkout.</p>
+            {% if current_user.role in manager_roles %}
+                <form method="post" action="{{ url_for('equipment.checkout', item_id=item.id) }}" class="form-grid">
+                    <label>
+                        Crew or staff member
+                        <select name="user_id" required>
+                            <option value="">Select a user</option>
+                            {% for user in crew_users %}
+                                <option value="{{ user.id }}">{{ user.name }} - {{ user.role }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        Event
+                        <select name="event_id">
+                            <option value="">No event linked</option>
+                            {% for event in events %}
+                                <option value="{{ event.id }}">{{ event.name }} - {{ event.event_date.strftime("%d %b %Y") }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <div class="actions">
+                        <button class="button button-primary" type="submit">Lend out equipment</button>
+                    </div>
+                </form>
+            {% endif %}
+        {% endif %}
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Checkout history</h2>
+    </div>
+    {% if checkout_history %}
+        <div class="dashboard-list">
+            {% for checkout in checkout_history %}
+                <article class="dashboard-item">
+                    <strong>{{ checkout.user.name }}</strong>
+                    <div class="dashboard-meta">
+                        <span>Out: {{ checkout.checkout_time.strftime("%d %b %Y %I:%M %p") }}</span>
+                        <span>{{ checkout.event.name if checkout.event else "No event linked" }}</span>
+                        <span>{{ checkout.return_time.strftime("%d %b %Y %I:%M %p") if checkout.return_time else "Still checked out" }}</span>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No checkout history yet.</p>
+    {% endif %}
 </section>
 {% endblock %}

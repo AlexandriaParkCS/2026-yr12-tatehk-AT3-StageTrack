@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Scan Equipment{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">QR scanner</p>
+        <h1>Scan equipment</h1>
+        <p>Use the StageTrack camera scanner to jump straight to the right item and manage its lend status on your phone.</p>
+    </div>
+    <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Live camera scan</h2>
+        </div>
+        <p class="support-copy">Point the camera at a StageTrack QR code. When it matches an equipment code, you will be taken straight to that item.</p>
+        <div id="equipment-qr-reader" class="scanner-reader"></div>
+        <p id="equipment-scan-status" class="support-copy scanner-status">Waiting for camera access.</p>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Manual fallback</h2>
+        </div>
+        <p class="support-copy">If the camera library is blocked or the browser does not allow camera access, paste the QR link here.</p>
+        <form id="equipment-scan-form" class="form-grid">
+            <label>
+                QR code URL
+                <input type="text" id="equipment-scan-input" placeholder="https://stagetrack.xyz/equipment/qr/12">
+            </label>
+            <div class="actions">
+                <button class="button button-primary" type="submit">Open equipment</button>
+            </div>
+        </form>
+    </section>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+    (() => {
+        const statusElement = document.getElementById("equipment-scan-status");
+        const form = document.getElementById("equipment-scan-form");
+        const input = document.getElementById("equipment-scan-input");
+        const qrPattern = /\/equipment\/qr\/(\d+)/i;
+        const equipmentBasePath = "{{ url_for('equipment.index') }}".replace(/\/$/, "");
+
+        function setStatus(message) {
+            if (statusElement) {
+                statusElement.textContent = message;
+            }
+        }
+
+        function resolveItemId(value) {
+            const raw = (value || "").trim();
+            if (!raw) {
+                return null;
+            }
+
+            const directMatch = raw.match(qrPattern);
+            if (directMatch) {
+                return directMatch[1];
+            }
+
+            try {
+                const parsed = new URL(raw);
+                const pathMatch = parsed.pathname.match(qrPattern);
+                return pathMatch ? pathMatch[1] : null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function openEquipmentFromScan(value) {
+            const itemId = resolveItemId(value);
+            if (!itemId) {
+                setStatus("That QR code is not recognised as a StageTrack equipment code.");
+                return false;
+            }
+
+            window.location.href = equipmentBasePath + "/" + itemId + "?scanner=1";
+            return true;
+        }
+
+        form?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            if (!openEquipmentFromScan(input.value)) {
+                input.focus();
+            }
+        });
+
+        if (!window.Html5Qrcode) {
+            setStatus("Camera scanner could not load. You can still paste a QR link manually.");
+            return;
+        }
+
+        const scanner = new Html5Qrcode("equipment-qr-reader");
+        scanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 240, height: 240 } },
+            (decodedText) => {
+                setStatus("QR code scanned. Opening equipment...");
+                scanner.stop().catch(() => {});
+                openEquipmentFromScan(decodedText);
+            },
+            () => {}
+        ).then(() => {
+            setStatus("Camera ready. Scan a StageTrack equipment code.");
+        }).catch(() => {
+            setStatus("Camera access was blocked or unavailable. Use the manual QR link field instead.");
+        });
+    })();
+</script>
+{% endblock %}
