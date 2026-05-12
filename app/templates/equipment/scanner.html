@@ -15,20 +15,34 @@
         <div class="panel-header">
             <h2>Live camera scan</h2>
         </div>
-        <p class="support-copy">Point the camera at a StageTrack QR code. When it matches an equipment code, you will be taken straight to that item.</p>
+        <p class="support-copy">Point the camera at a StageTrack QR code. Equipment codes open single items and kit codes open full bundles.</p>
         <div id="equipment-qr-reader" class="scanner-reader"></div>
         <p id="equipment-scan-status" class="support-copy scanner-status">Waiting for camera access.</p>
     </section>
 
     <section class="panel">
         <div class="panel-header">
-            <h2>Manual fallback</h2>
+            <h2>What happens after scan</h2>
         </div>
-        <p class="support-copy">If the camera library is blocked or the browser does not allow camera access, paste the QR link here.</p>
-        <form id="equipment-scan-form" class="form-grid">
+        <p class="support-copy">StageTrack keeps the phone workflow short and practical once the item opens.</p>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Check out or return fast</strong>
+                <div class="dashboard-meta"><span>Managers get straight to lend and return actions from the scanned item screen.</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Report issues on the spot</strong>
+                <div class="dashboard-meta"><span>Any crew member except viewers can flag damage or faults right from the scanned item page.</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Manual fallback</strong>
+                <div class="dashboard-meta"><span>If camera access is blocked, you can still paste an equipment or kit QR link below.</span></div>
+            </article>
+        </div>
+        <form id="equipment-scan-form" class="form-grid scanner-manual-form">
             <label>
                 QR code URL
-                <input type="text" id="equipment-scan-input" placeholder="https://stagetrack.xyz/equipment/qr/12">
+                <input type="text" id="equipment-scan-input" placeholder="https://stagetrack.xyz/equipment/qr/12 or /equipment/kits/qr/3">
             </label>
             <div class="actions">
                 <button class="button button-primary" type="submit">Open equipment</button>
@@ -44,8 +58,10 @@
         const statusElement = document.getElementById("equipment-scan-status");
         const form = document.getElementById("equipment-scan-form");
         const input = document.getElementById("equipment-scan-input");
-        const qrPattern = /\/equipment\/qr\/(\d+)/i;
+        const equipmentPattern = /\/equipment\/qr\/(\d+)/i;
+        const kitPattern = /\/equipment\/kits\/qr\/(\d+)/i;
         const equipmentBasePath = "{{ url_for('equipment.index') }}".replace(/\/$/, "");
+        const kitBasePath = "{{ url_for('equipment.kits') }}".replace(/\/$/, "");
 
         function setStatus(message) {
             if (statusElement) {
@@ -53,34 +69,48 @@
             }
         }
 
-        function resolveItemId(value) {
+        function resolveScanTarget(value) {
             const raw = (value || "").trim();
             if (!raw) {
                 return null;
             }
 
-            const directMatch = raw.match(qrPattern);
-            if (directMatch) {
-                return directMatch[1];
+            const directEquipmentMatch = raw.match(equipmentPattern);
+            if (directEquipmentMatch) {
+                return { type: "equipment", id: directEquipmentMatch[1] };
+            }
+
+            const directKitMatch = raw.match(kitPattern);
+            if (directKitMatch) {
+                return { type: "kit", id: directKitMatch[1] };
             }
 
             try {
                 const parsed = new URL(raw);
-                const pathMatch = parsed.pathname.match(qrPattern);
-                return pathMatch ? pathMatch[1] : null;
+                const equipmentMatch = parsed.pathname.match(equipmentPattern);
+                if (equipmentMatch) {
+                    return { type: "equipment", id: equipmentMatch[1] };
+                }
+                const kitMatch = parsed.pathname.match(kitPattern);
+                return kitMatch ? { type: "kit", id: kitMatch[1] } : null;
             } catch (error) {
                 return null;
             }
         }
 
         function openEquipmentFromScan(value) {
-            const itemId = resolveItemId(value);
-            if (!itemId) {
-                setStatus("That QR code is not recognised as a StageTrack equipment code.");
+            const target = resolveScanTarget(value);
+            if (!target) {
+                setStatus("That QR code is not recognised as a StageTrack equipment or kit code.");
                 return false;
             }
 
-            window.location.href = equipmentBasePath + "/" + itemId + "?scanner=1";
+            if (target.type === "kit") {
+                window.location.href = kitBasePath + "/" + target.id + "?scanner=1";
+                return true;
+            }
+
+            window.location.href = equipmentBasePath + "/" + target.id + "?scanner=1";
             return true;
         }
 

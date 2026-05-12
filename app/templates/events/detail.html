@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }}{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Event detail</p>
+        <h1>{{ event.name }}</h1>
+        <p>View the event schedule, venue details, and linked crew roles in one place.</p>
+    </div>
+    <div class="actions">
+        {% if current_user.role in manager_roles %}
+            <a class="button button-secondary" href="{{ url_for('events.equipment_sheet', event_id=event.id) }}">Print equipment sheet</a>
+            <a class="button button-secondary" href="{{ url_for('events.edit', event_id=event.id) }}">Edit event</a>
+        {% endif %}
+        <a class="button button-primary" href="{{ url_for('events.index') }}">Back to events</a>
+    </div>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Venue</strong>
+                <div class="dashboard-meta"><span>{{ event.venue }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Event date</strong>
+                <div class="dashboard-meta"><span>{{ event.event_date.strftime("%d %b %Y %I:%M %p") }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Setup time</strong>
+                <div class="dashboard-meta"><span>{{ event.setup_time.strftime("%d %b %Y %I:%M %p") if event.setup_time else "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Pack-down time</strong>
+                <div class="dashboard-meta"><span>{{ event.packdown_time.strftime("%d %b %Y %I:%M %p") if event.packdown_time else "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Description</strong>
+                <div class="dashboard-meta"><span>{{ event.description or "No event description yet." }}</span></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Linked crew</h2>
+        </div>
+        {% if event.crew_assignments %}
+            <div class="dashboard-list">
+                {% for assignment in event.crew_assignments %}
+                    <article class="dashboard-item">
+                        <strong>{{ assignment.user.name }}</strong>
+                        <div class="dashboard-meta">
+                            <span>{{ assignment.crew_role }}</span>
+                            <span>{{ assignment.crew_email }}</span>
+                            <span>{{ assignment.user.role }}</span>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No crew linked yet.</p>
+        {% endif %}
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Linked equipment</h2>
+    </div>
+    {% if event.checkouts %}
+        <div class="dashboard-list">
+            {% for checkout in event.checkouts|sort(attribute='checkout_time', reverse=True) %}
+                <article class="dashboard-item">
+                    <strong><a href="{{ url_for('equipment.detail', item_id=checkout.equipment.id) }}">{{ checkout.equipment.name }}</a></strong>
+                    <div class="dashboard-meta">
+                        <span>{{ checkout.user.name }}</span>
+                        <span>{{ checkout.checkout_time.strftime("%d %b %Y %I:%M %p") }}</span>
+                        <span>{{ checkout.return_time.strftime("%d %b %Y %I:%M %p") if checkout.return_time else "Still checked out" }}</span>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No equipment has been linked to this event yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

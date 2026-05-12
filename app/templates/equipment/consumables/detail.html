@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }}{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Stock room</p>
+        <h1>{{ item.name }}</h1>
+        <p>Track live stock, restock changes, and low-stock risk for this consumable.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.edit_consumable', item_id=item.id) }}">Edit</a>
+        <a class="button button-secondary" href="{{ url_for('equipment.consumables') }}">Back to consumables</a>
+        {% if current_user.role in ["Admin", "Teacher"] %}
+            <form method="post" action="{{ url_for('equipment.delete_consumable', item_id=item.id) }}">
+                <button class="button button-danger" type="submit">Delete</button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+
+<section class="utility-grid">
+    <section class="panel">
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>On hand</strong>
+                <div class="dashboard-meta">
+                    <span class="status-pill {% if item.quantity_on_hand <= item.reorder_level %}status-pill-danger{% endif %}">
+                        {{ item.quantity_on_hand }} {{ item.unit_label }}
+                    </span>
+                </div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Reorder level</strong>
+                <div class="dashboard-meta"><span>{{ item.reorder_level }} {{ item.unit_label }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Category</strong>
+                <div class="dashboard-meta"><span>{{ item.category }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Location</strong>
+                <div class="dashboard-meta"><span>{{ item.location or "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Notes</strong>
+                <div class="dashboard-meta"><span>{{ item.notes or "No notes yet." }}</span></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Take stock</h2>
+        </div>
+        {% if current_user.role != "Viewer" %}
+            <form method="post" action="{{ url_for('equipment.take_consumable', item_id=item.id) }}" class="form-grid">
+                <label>
+                    Quantity taken
+                    <input type="number" name="quantity_taken" min="1" placeholder="How many did you take?" required>
+                </label>
+                <label>
+                    What was it for?
+                    <input type="text" name="reason" placeholder="Example: Assembly setup, rehearsal, spare batteries">
+                </label>
+                <div class="actions">
+                    <button class="button button-primary" type="submit">Log stock taken</button>
+                </div>
+            </form>
+        {% else %}
+            <p class="empty-state">Viewer accounts can see consumable levels, but they cannot log stock usage.</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Adjust stock</h2>
+        </div>
+        {% if current_user.role in manager_roles %}
+            <form method="post" action="{{ url_for('equipment.adjust_consumable', item_id=item.id) }}" class="form-grid">
+                <label>
+                    Quantity change
+                    <input type="number" name="quantity_change" placeholder="Use positive for restock, negative for corrections" required>
+                </label>
+                <label>
+                    Reason
+                    <input type="text" name="reason" placeholder="Example: Weekly restock, count correction">
+                </label>
+                <div class="actions">
+                    <button class="button button-primary" type="submit">Save stock change</button>
+                </div>
+            </form>
+        {% else %}
+            <p class="empty-state">Only managers can manually restock or correct stock levels.</p>
+        {% endif %}
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Adjustment history</h2>
+    </div>
+    {% if item.adjustments %}
+        <div class="dashboard-list">
+            {% for adjustment in item.adjustments|sort(attribute='created_at', reverse=True) %}
+                <article class="dashboard-item">
+                    <strong>{{ adjustment.quantity_change }} {{ item.unit_label }}</strong>
+                    <div class="dashboard-meta">
+                        <span>{{ adjustment.user.name }}</span>
+                        <span>{{ adjustment.created_at.strftime("%d %b %Y %I:%M %p") }}</span>
+                        <span>{{ adjustment.reason or "No reason entered" }}</span>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No stock adjustments have been recorded yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

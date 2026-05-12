@@ -466,6 +466,12 @@ tbody span,
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.button-danger {
+    background: linear-gradient(180deg, #ff9d9d 0%, #ff6e6e 100%);
+    color: #230707;
+    box-shadow: 0 14px 28px rgba(255, 110, 110, 0.22);
+}
+
 .button-link {
     padding: 0;
     background: none;
@@ -481,6 +487,11 @@ tbody span,
 .button-primary:hover,
 .button-primary:focus-visible {
     box-shadow: 0 16px 32px rgba(255, 184, 0, 0.26);
+}
+
+.button-danger:hover,
+.button-danger:focus-visible {
+    box-shadow: 0 16px 32px rgba(255, 110, 110, 0.28);
 }
 
 .stat-grid {
@@ -539,6 +550,20 @@ tbody span,
     display: grid;
     gap: 0.75rem;
     margin-bottom: 1rem;
+}
+
+.announcement-banner {
+    margin-bottom: 1rem;
+    padding: 1rem 1.15rem;
+    border-radius: var(--radius-md);
+    background:
+        linear-gradient(180deg, rgba(255, 211, 61, 0.14), rgba(255, 255, 255, 0.03)),
+        rgba(20, 23, 27, 0.96);
+    border: 1px solid rgba(255, 211, 61, 0.24);
+    color: var(--ink);
+    font-weight: 700;
+    line-height: 1.6;
+    box-shadow: var(--shadow-soft);
 }
 
 .flash {
@@ -666,6 +691,7 @@ input[type="checkbox"] {
 }
 
 .table-wrap {
+    margin-top: 1.25rem;
     overflow-x: auto;
 }
 
@@ -747,6 +773,13 @@ tbody tr:hover {
     font-size: 0.92rem;
 }
 
+.dashboard-task-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 0.35rem;
+}
+
 .stack {
     display: grid;
     gap: 1rem;
@@ -796,6 +829,15 @@ tbody tr:hover {
 .coming-soon-card .hero-badge {
     position: relative;
     z-index: 1;
+}
+
+.coming-soon-card .hero-actions {
+    justify-content: center;
+    margin-top: 1.4rem;
+}
+
+.coming-soon-card .hero-actions .button {
+    min-width: 220px;
 }
 
 .coming-soon-logo {
@@ -910,10 +952,72 @@ tbody tr:hover {
     margin: 0;
 }
 
+.filter-toggle {
+    padding: 0.75rem 1rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.status-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 1rem;
+}
+
+.status-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.72rem 0.95rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-weight: 700;
+    transition: 160ms ease;
+}
+
+.status-filter-pill:hover,
+.status-filter-pill:focus-visible {
+    color: var(--ink);
+    border-color: rgba(255, 211, 61, 0.28);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.status-filter-pill.is-active {
+    color: #15120a;
+    background: linear-gradient(180deg, var(--gold) 0%, var(--gold-strong) 100%);
+    border-color: transparent;
+    box-shadow: 0 12px 26px rgba(255, 184, 0, 0.18);
+}
+
+.status-filter-pill.is-active.is-alert {
+    background: linear-gradient(180deg, #ff9d9d 0%, #ff6e6e 100%);
+    color: #2d0808;
+    box-shadow: 0 12px 26px rgba(255, 110, 110, 0.18);
+}
+
 .scanner-banner {
     margin-bottom: 1rem;
     background:
         linear-gradient(180deg, rgba(255, 211, 61, 0.1), rgba(255, 255, 255, 0.02)),
+        rgba(20, 23, 27, 0.96);
+}
+
+.scanner-action-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.danger-panel {
+    border-color: rgba(255, 125, 125, 0.26);
+    background:
+        linear-gradient(180deg, rgba(255, 125, 125, 0.08), rgba(255, 255, 255, 0.02)),
         rgba(20, 23, 27, 0.96);
 }
 
@@ -954,6 +1058,130 @@ tbody tr:hover {
     border-radius: 24px;
 }
 
+.assignment-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.assignment-list {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.assignment-toolbar {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.assignment-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.assignment-row-wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.assignment-remove {
+    justify-self: flex-start;
+}
+
+.kit-picker-list {
+    max-height: 460px;
+    overflow: auto;
+}
+
+.kit-picker-item {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    cursor: pointer;
+}
+
+.kit-picker-item input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.qr-label-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.qr-label-card {
+    text-align: center;
+}
+
+.qr-label-card strong {
+    display: block;
+    margin-top: 0.95rem;
+    font-size: 1.05rem;
+}
+
+.qr-label-card .dashboard-meta {
+    justify-content: center;
+    margin-top: 0.7rem;
+}
+
+.kit-label-items {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 1rem;
+    text-align: left;
+}
+
+.kit-label-items span {
+    padding: 0.45rem 0.6rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+@media print {
+    .site-header,
+    .page-header .actions,
+    .page-actions,
+    .flash-stack {
+        display: none !important;
+    }
+
+    body,
+    .page-shell {
+        background: #ffffff !important;
+        color: #000000 !important;
+        width: 100%;
+        margin: 0;
+    }
+
+    .panel,
+    .qr-label-card {
+        box-shadow: none;
+        border: 1px solid #d0d0d0;
+        background: #ffffff !important;
+    }
+
+    .qr-label-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .qr-label-card .dashboard-meta {
+        color: #333333;
+    }
+
+    .kit-label-items span {
+        background: #ffffff !important;
+        border-color: #d0d0d0;
+        color: #111111;
+    }
+}
+
 @media (max-width: 980px) {
     .hero,
     .content-grid,
@@ -964,7 +1192,8 @@ tbody tr:hover {
     .feature-strip,
     .utility-grid,
     .hero-highlights,
-    .stat-grid {
+    .stat-grid,
+    .assignment-row {
         grid-template-columns: 1fr;
     }
 }

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Location Settings{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Super admin</p>
+        <h1>Storage locations</h1>
+        <p>Manage the rooms, cupboards, shelves, and bays that equipment can be assigned to.</p>
+    </div>
+    <a class="button button-secondary" href="{{ url_for('admin.users') }}">Back to admin</a>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Add storage location</h2>
+        </div>
+        <form method="post" class="form-grid">
+            <label>
+                Location name
+                <input type="text" name="name" placeholder="Example: Sound cage" required>
+            </label>
+            <label>
+                Shelf or bay
+                <input type="text" name="shelf" placeholder="Example: Shelf B3">
+            </label>
+            <label>
+                Notes
+                <textarea name="notes" rows="4" placeholder="Optional notes about what belongs in this space."></textarea>
+            </label>
+            <div class="actions">
+                <button class="button button-primary" type="submit">Add location</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Saved locations</h2>
+        </div>
+        {% if locations %}
+            <div class="dashboard-list">
+                {% for location in locations %}
+                    <article class="dashboard-item">
+                        <strong>{{ location.label }}</strong>
+                        <div class="dashboard-meta">
+                            <span class="status-pill">{{ "Active" if location.is_active else "Hidden" }}</span>
+                            <span>Added {{ location.created_at.strftime("%d %b %Y") }}</span>
+                        </div>
+                        {% if location.notes %}
+                            <p class="support-copy">{{ location.notes }}</p>
+                        {% endif %}
+                        <div class="actions">
+                            <form method="post" action="{{ url_for('admin.toggle_location', location_id=location.id) }}">
+                                <button class="button button-secondary" type="submit">
+                                    {{ "Hide from forms" if location.is_active else "Make active" }}
+                                </button>
+                            </form>
+                            <form method="post" action="{{ url_for('admin.delete_location', location_id=location.id) }}">
+                                <button class="button button-danger" type="submit">Delete location</button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No storage locations have been set up yet.</p>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

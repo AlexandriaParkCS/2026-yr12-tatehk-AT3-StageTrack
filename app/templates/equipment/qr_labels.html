@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}QR Labels{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Inventory tools</p>
+        <h1>QR label print view</h1>
+        <p>Print multiple equipment QR labels in one pass, or use your browser print dialog to save them as a PDF.</p>
+    </div>
+    <div class="actions">
+        <button class="button button-primary" type="button" onclick="window.print()">Print labels</button>
+        <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
+    </div>
+</section>
+
+<section class="qr-label-grid">
+    {% for item in equipment_items %}
+        <article class="panel qr-label-card">
+            <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ item.qr_code) }}" alt="QR code for {{ item.name }}">
+            <strong>{{ item.name }}</strong>
+            <div class="dashboard-meta">
+                <span>{{ item.category }}</span>
+                <span>{{ display_status(item, now) }}</span>
+                <span>{{ item.serial_number or "No serial" }}</span>
+            </div>
+        </article>
+    {% else %}
+        <p class="empty-state">No equipment matched the current filter.</p>
+    {% endfor %}
+</section>
+{% endblock %}

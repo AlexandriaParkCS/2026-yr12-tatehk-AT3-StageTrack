@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{% if kit and kit.id %}Edit{% else %}Create{% endif %} Equipment Kit{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Inventory kits</p>
+        <h1>{% if kit and kit.id %}Edit{% else %}Create{% endif %} equipment kit</h1>
+        <p>Bundle gear that is normally used together so it can be prepared and checked out as one set.</p>
+    </div>
+    <a class="button button-secondary" href="{{ url_for('equipment.kits') }}">Back to kits</a>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid">
+        <label>
+            Kit name
+            <input type="text" name="name" value="{{ kit.name if kit else '' }}" required>
+        </label>
+        <label>
+            Description
+            <textarea name="description" rows="4" placeholder="Example: School hall wireless mic and speaker setup.">{{ kit.description if kit else '' }}</textarea>
+        </label>
+        <div class="panel-header">
+            <h2>Kit items</h2>
+        </div>
+        <div class="dashboard-list kit-picker-list">
+            {% for item in equipment_choices %}
+                <label class="dashboard-item kit-picker-item">
+                    <span>{{ item.name }}</span>
+                    <span class="dashboard-meta">
+                        <span>{{ item.category }}</span>
+                        <span>{{ item.location or "No location" }}</span>
+                    </span>
+                    <input type="checkbox" name="equipment_ids" value="{{ item.id }}" {% if item.id in selected_ids %}checked{% endif %}>
+                </label>
+            {% endfor %}
+        </div>
+        <div class="actions">
+            <button class="button button-primary" type="submit">Save kit</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -9,6 +9,7 @@ from flask import current_app, url_for
 
 from .extensions import db
 from .models import EmailSettings, PasswordResetToken
+from .system_settings_service import get_system_settings, subject_template
 
 
 def get_email_settings():
@@ -25,6 +26,8 @@ def get_sender_email(settings, email_type):
         return settings.smtp_from_reset_email or settings.smtp_from_email
     if email_type == "welcome":
         return settings.smtp_from_welcome_email or settings.smtp_from_email
+    if email_type == "equipment":
+        return settings.smtp_from_equipment_email or settings.smtp_from_email
     return settings.smtp_from_email
 
 
@@ -146,6 +149,7 @@ def deliver_email(settings, recipient_email, subject, body, email_type="general"
 
 def send_password_reset_email(user, reset_url):
     settings = get_email_settings()
+    system_settings = get_system_settings()
     body = (
         "A StageTrack password reset was requested for your account.\n\n"
         f"Use this link to choose a new password:\n{reset_url}\n\n"
@@ -169,7 +173,7 @@ def send_password_reset_email(user, reset_url):
     return deliver_email(
         settings,
         user.email,
-        "StageTrack Password Reset",
+        system_settings.password_reset_email_subject,
         body,
         email_type="password_reset",
         html_body=html_body,
@@ -178,6 +182,7 @@ def send_password_reset_email(user, reset_url):
 
 def send_welcome_email(user, temporary_password):
     settings = get_email_settings()
+    system_settings = get_system_settings()
     body = (
         f"Welcome to StageTrack, {user.name}.\n\n"
         "An administrator has created your account.\n\n"
@@ -210,15 +215,252 @@ def send_welcome_email(user, temporary_password):
     return deliver_email(
         settings,
         user.email,
-        "Welcome to StageTrack",
+        system_settings.welcome_email_subject,
         body,
         email_type="welcome",
         html_body=html_body,
     )
 
 
+def build_login_url():
+    base_url = current_app.config.get("BASE_URL", "").rstrip("/")
+    if base_url:
+        return f"{base_url}/auth/login"
+    return url_for("auth.login", _external=True)
+
+
+def build_event_invite_url(reset_token):
+    return url_for("auth.accept_event_invite", token=reset_token.token, _external=True)
+
+
+def build_equipment_url(equipment):
+    return url_for("equipment.detail", item_id=equipment.id, _external=True)
+
+
+def send_event_assignment_email(user, event, crew_role):
+    settings = get_email_settings()
+    login_url = build_login_url()
+    event_url = url_for("events.detail", event_id=event.id, _external=True)
+    body = (
+        f"Hi {user.name},\n\n"
+        f"You have been added to the StageTrack event '{event.name}'.\n"
+        f"Your event role: {crew_role}\n"
+        f"Venue: {event.venue}\n"
+        f"Event date: {event.event_date.strftime('%d %b %Y %I:%M %p')}\n\n"
+        f"Sign in here: {login_url}\n"
+        f"Event link: {event_url}"
+    )
+    html_body = build_email_html(
+        preheader="You have been linked to a StageTrack event.",
+        heading="New Event Assignment",
+        intro=f"Hi {escape(user.name)}, you have been linked to a StageTrack event.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(event.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Your role</strong><br>{escape(crew_role)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Venue</strong><br>{escape(event.venue)}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Date</strong><br>{escape(event.event_date.strftime('%d %b %Y %I:%M %p'))}</p>
+            </div>
+        """,
+        cta_label="Sign in to view event",
+        cta_url=event_url,
+        footer_note="Sign in to StageTrack to view the event and your linked crew role."
+    )
+    return deliver_email(
+        settings,
+        user.email,
+        f"StageTrack event assignment: {event.name}",
+        body,
+        email_type="general",
+        html_body=html_body,
+    )
+
+
+def send_event_invite_email(user, event, crew_role, invite_url):
+    settings = get_email_settings()
+    body = (
+        f"You have been added to the StageTrack event '{event.name}'.\n\n"
+        f"Your event role: {crew_role}\n"
+        f"Venue: {event.venue}\n"
+        f"Event date: {event.event_date.strftime('%d %b %Y %I:%M %p')}\n\n"
+        "Finish setting up your StageTrack account with this secure link:\n"
+        f"{invite_url}"
+    )
+    html_body = build_email_html(
+        preheader="Finish setting up your StageTrack account.",
+        heading="You Have Been Added to an Event",
+        intro="A StageTrack event creator has linked you to an upcoming event.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(event.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Your role</strong><br>{escape(crew_role)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Venue</strong><br>{escape(event.venue)}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Date</strong><br>{escape(event.event_date.strftime('%d %b %Y %I:%M %p'))}</p>
+            </div>
+            <p style="margin:16px 0 0;">Use the button below to finish creating your StageTrack access and view the event.</p>
+        """,
+        cta_label="Set up account",
+        cta_url=invite_url,
+        footer_note="This secure setup link will let you finish your account and open StageTrack."
+    )
+    return deliver_email(
+        settings,
+        user.email,
+        f"StageTrack invite for {event.name}",
+        body,
+        email_type="welcome",
+        html_body=html_body,
+    )
+
+
+def send_equipment_checkout_email(checkout):
+    settings = get_email_settings()
+    system_settings = get_system_settings()
+    if not settings.notify_equipment_checkout:
+        return False
+
+    user = checkout.user
+    equipment = checkout.equipment
+    equipment_url = build_equipment_url(equipment)
+    body = (
+        f"Hi {user.name},\n\n"
+        f"{equipment.name} has been checked out to you in StageTrack.\n"
+        f"Status: {equipment.status}\n"
+        f"Location: {equipment.location or 'Not set'}\n"
+        f"Event: {checkout.event.name if checkout.event else 'No event linked'}\n"
+        f"Due: {checkout.due_at.strftime('%d %b %Y %I:%M %p') if checkout.due_at else 'No due date set'}\n\n"
+        f"View the equipment here:\n{equipment_url}"
+    )
+    html_body = build_email_html(
+        preheader="Equipment has been checked out to you.",
+        heading="Equipment Checked Out",
+        intro=f"Hi {escape(user.name)}, this equipment has been checked out to you in StageTrack.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Equipment</strong><br>{escape(equipment.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(checkout.event.name if checkout.event else 'No event linked')}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Location</strong><br>{escape(equipment.location or 'Not set')}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Due</strong><br>{escape(checkout.due_at.strftime('%d %b %Y %I:%M %p') if checkout.due_at else 'No due date set')}</p>
+            </div>
+        """,
+        cta_label="Open equipment",
+        cta_url=equipment_url,
+        footer_note="You are receiving this because equipment was checked out under your StageTrack account."
+    )
+    return deliver_email(settings, user.email, subject_template(system_settings.equipment_checkout_email_subject, equipment_name=equipment.name), body, email_type="equipment", html_body=html_body)
+
+
+def send_equipment_overdue_email(checkout):
+    settings = get_email_settings()
+    system_settings = get_system_settings()
+    if not settings.notify_equipment_overdue:
+        return False
+
+    user = checkout.user
+    equipment = checkout.equipment
+    equipment_url = build_equipment_url(equipment)
+    body = (
+        f"Hi {user.name},\n\n"
+        f"{equipment.name} is now overdue in StageTrack.\n"
+        f"Event: {checkout.event.name if checkout.event else 'No event linked'}\n"
+        f"Due: {checkout.due_at.strftime('%d %b %Y %I:%M %p') if checkout.due_at else 'No due date set'}\n\n"
+        f"View the equipment here:\n{equipment_url}"
+    )
+    html_body = build_email_html(
+        preheader="Equipment under your name is overdue.",
+        heading="Equipment Overdue",
+        intro=f"Hi {escape(user.name)}, StageTrack has marked this equipment as overdue.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,125,125,0.08); border:1px solid rgba(255,125,125,0.16);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Equipment</strong><br>{escape(equipment.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(checkout.event.name if checkout.event else 'No event linked')}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Due</strong><br>{escape(checkout.due_at.strftime('%d %b %Y %I:%M %p') if checkout.due_at else 'No due date set')}</p>
+            </div>
+        """,
+        cta_label="Open equipment",
+        cta_url=equipment_url,
+        footer_note="Please arrange a return or update the equipment record if the due date needs to change."
+    )
+    return deliver_email(settings, user.email, subject_template(system_settings.equipment_overdue_email_subject, equipment_name=equipment.name), body, email_type="equipment", html_body=html_body)
+
+
+def send_equipment_return_email(checkout):
+    settings = get_email_settings()
+    system_settings = get_system_settings()
+    if not settings.notify_equipment_return:
+        return False
+
+    user = checkout.user
+    equipment = checkout.equipment
+    equipment_url = build_equipment_url(equipment)
+    body = (
+        f"Hi {user.name},\n\n"
+        f"{equipment.name} has been checked back in within StageTrack.\n"
+        f"Event: {checkout.event.name if checkout.event else 'No event linked'}\n"
+        f"Returned: {checkout.return_time.strftime('%d %b %Y %I:%M %p') if checkout.return_time else 'Just now'}\n\n"
+        f"View the equipment here:\n{equipment_url}"
+    )
+    html_body = build_email_html(
+        preheader="Equipment has been returned in StageTrack.",
+        heading="Equipment Returned",
+        intro=f"Hi {escape(user.name)}, this equipment has been checked back in.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Equipment</strong><br>{escape(equipment.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(checkout.event.name if checkout.event else 'No event linked')}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Returned</strong><br>{escape(checkout.return_time.strftime('%d %b %Y %I:%M %p') if checkout.return_time else 'Just now')}</p>
+            </div>
+        """,
+        cta_label="Open equipment",
+        cta_url=equipment_url,
+        footer_note="This message confirms that the equipment has been returned and the record has been updated."
+    )
+    return deliver_email(settings, user.email, subject_template(system_settings.equipment_return_email_subject, equipment_name=equipment.name), body, email_type="equipment", html_body=html_body)
+
+
+def send_maintenance_request_email(recipient_email, report, reporter):
+    settings = get_email_settings()
+    system_settings = get_system_settings()
+    equipment = report.equipment
+    equipment_url = build_equipment_url(equipment)
+    body = (
+        "A new StageTrack maintenance request has been submitted.\n\n"
+        f"Equipment: {equipment.name}\n"
+        f"Reported by: {reporter.name} ({reporter.email})\n"
+        f"Location: {equipment.location or 'Not set'}\n"
+        f"Status: {equipment.status}\n"
+        f"Problem: {report.description}\n\n"
+        f"View the equipment here:\n{equipment_url}"
+    )
+    html_body = build_email_html(
+        preheader="A new maintenance request was submitted in StageTrack.",
+        heading="Maintenance Request",
+        intro="A user has submitted a new equipment maintenance request.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Equipment</strong><br>{escape(equipment.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Reported by</strong><br>{escape(reporter.name)} ({escape(reporter.email)})</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Location</strong><br>{escape(equipment.location or 'Not set')}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Issue</strong><br>{escape(report.description)}</p>
+            </div>
+        """,
+        cta_label="Open equipment",
+        cta_url=equipment_url,
+        footer_note="This request was submitted through the StageTrack equipment maintenance workflow."
+    )
+    return deliver_email(
+        settings,
+        recipient_email,
+        subject_template(system_settings.maintenance_email_subject, equipment_name=equipment.name),
+        body,
+        email_type="equipment",
+        html_body=html_body,
+    )
+
+
 def send_enquiry_email(recipient_email, enquiry_data):
     settings = get_email_settings()
+    system_settings = get_system_settings()
     body = (
         "A new StageTrack website enquiry has been submitted.\n\n"
         f"Name: {enquiry_data['name']}\n"
@@ -245,7 +487,7 @@ def send_enquiry_email(recipient_email, enquiry_data):
     return deliver_email(
         settings,
         recipient_email,
-        f"StageTrack enquiry from {enquiry_data['name']}",
+        subject_template(system_settings.enquiry_email_subject, name=enquiry_data["name"]),
         body,
         email_type="general",
         html_body=html_body,

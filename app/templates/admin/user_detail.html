@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ user.name }}{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Super admin</p>
+        <h1>{{ user.name }}</h1>
+        <p>See this user's account details, linked events, and equipment activity in one place.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('admin.users') }}">Back to users</a>
+    </div>
+</section>
+
+<section class="stat-grid">
+    <article class="stat-card">
+        <div class="stat-label">
+            <span>Active checkouts</span>
+            <span class="stat-icon">EQ</span>
+        </div>
+        <strong>{{ active_checkouts|length }}</strong>
+    </article>
+    <article class="stat-card {% if overdue_checkouts %}alert{% endif %}">
+        <div class="stat-label">
+            <span>Overdue gear</span>
+            <span class="stat-icon">OD</span>
+        </div>
+        <strong>{{ overdue_checkouts|length }}</strong>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label">
+            <span>Linked events</span>
+            <span class="stat-icon">EV</span>
+        </div>
+        <strong>{{ event_assignments|length }}</strong>
+    </article>
+</section>
+
+<section class="utility-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Account summary</h2>
+        </div>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Email</strong>
+                <div class="dashboard-meta"><span>{{ user.email }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Role</strong>
+                <div class="dashboard-meta"><span>{{ user.role }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Phone number</strong>
+                <div class="dashboard-meta"><span>{{ user.phone_number or "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Contact details</strong>
+                <div class="dashboard-meta"><span>{{ user.contact_details or "No extra details saved." }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Access</strong>
+                <div class="dashboard-meta">
+                    <span class="status-pill {% if not user.is_active %}status-pill-danger{% endif %}">{{ "Active" if user.is_active else "Disabled" }}</span>
+                    <span>Joined {{ user.created_at.strftime("%d %b %Y") }}</span>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Current equipment</h2>
+        </div>
+        {% if active_checkouts %}
+            <div class="dashboard-list">
+                {% for checkout in active_checkouts %}
+                    <article class="dashboard-item">
+                        <strong><a href="{{ url_for('equipment.detail', item_id=checkout.equipment.id) }}">{{ checkout.equipment.name }}</a></strong>
+                        <div class="dashboard-meta">
+                            <span>{{ checkout.event.name if checkout.event else "No event linked" }}</span>
+                            <span>{{ checkout.equipment.location or "No location set" }}</span>
+                            <span>Out {{ checkout.checkout_time.strftime("%d %b %Y %I:%M %p") }}</span>
+                            <span>{{ checkout.due_at.strftime("Due %d %b %Y %I:%M %p") if checkout.due_at else "No due date" }}</span>
+                            {% if checkout.due_at and checkout.due_at < now %}
+                                <span class="status-pill status-pill-danger">Overdue</span>
+                            {% else %}
+                                <span class="status-pill">Checked out</span>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No equipment is currently checked out under this user.</p>
+        {% endif %}
+    </section>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Linked events</h2>
+        </div>
+        {% if event_assignments %}
+            <div class="dashboard-list">
+                {% for assignment in event_assignments %}
+                    <article class="dashboard-item">
+                        <strong>{{ assignment.event.name }}</strong>
+                        <div class="dashboard-meta">
+                            <span>{{ assignment.crew_role }}</span>
+                            <span>{{ assignment.event.venue }}</span>
+                            <span>{{ assignment.event.event_date.strftime("%d %b %Y %I:%M %p") }}</span>
+                            <span><a href="{{ url_for('events.edit', event_id=assignment.event.id) }}">Open event</a></span>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">This user is not linked to any events yet.</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Recent equipment history</h2>
+        </div>
+        {% if checkout_history %}
+            <div class="dashboard-list">
+                {% for checkout in checkout_history %}
+                    <article class="dashboard-item">
+                        <strong><a href="{{ url_for('equipment.detail', item_id=checkout.equipment.id) }}">{{ checkout.equipment.name }}</a></strong>
+                        <div class="dashboard-meta">
+                            <span>{{ checkout.event.name if checkout.event else "No event linked" }}</span>
+                            <span>Out {{ checkout.checkout_time.strftime("%d %b %Y %I:%M %p") }}</span>
+                            <span>{{ checkout.due_at.strftime("Due %d %b %Y %I:%M %p") if checkout.due_at else "No due date" }}</span>
+                            <span>{{ checkout.return_time.strftime("Returned %d %b %Y %I:%M %p") if checkout.return_time else "Still checked out" }}</span>
+                            {% if not checkout.return_time and checkout.due_at and checkout.due_at < now %}
+                                <span class="status-pill status-pill-danger">Overdue</span>
+                            {% elif not checkout.return_time %}
+                                <span class="status-pill">Checked out</span>
+                            {% else %}
+                                <span class="status-pill">Returned</span>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No equipment history yet for this user.</p>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

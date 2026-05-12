@@ -6,12 +6,26 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..email_service import build_password_reset_url, issue_password_reset_token, send_password_reset_email
 from ..extensions import db
-from ..models import PasswordResetToken, User
+from ..models import EventCrewAssignment, PasswordResetToken, User
 from . import auth_bp
 
 
 ROLES = ["Admin", "Teacher", "Stage Manager", "Student Crew", "Viewer"]
 MANAGER_ROLES = {"Admin", "Teacher", "Stage Manager"}
+
+
+def can_delete_user_account(user):
+    if user.role == "Admin" and User.query.filter_by(role="Admin", is_active=True).count() <= 1:
+        return False, "You cannot delete the last active admin account."
+    if user.tasks:
+        return False, "Your account cannot be deleted while tasks are still assigned to you."
+    if user.checkouts:
+        return False, "Your account cannot be deleted while equipment checkout history is linked to it."
+    if user.damage_reports:
+        return False, "Your account cannot be deleted while damage reports are linked to it."
+    if user.event_assignments:
+        return False, "Your account cannot be deleted while event crew roles are linked to it."
+    return True, None
 
 
 def current_user():
@@ -194,6 +208,23 @@ def account():
                 flash("Password updated successfully.", "success")
                 return redirect(url_for("auth.account"))
 
+        if action == "delete":
+            password = request.form.get("delete_password", "")
+
+            if not check_password_hash(user.password_hash, password):
+                flash("Enter your current password to delete your account.", "error")
+            else:
+                allowed, reason = can_delete_user_account(user)
+                if not allowed:
+                    flash(reason, "error")
+                else:
+                    PasswordResetToken.query.filter_by(user_id=user.id).delete()
+                    db.session.delete(user)
+                    db.session.commit()
+                    session.clear()
+                    flash("Your account has been deleted.", "success")
+                    return redirect(url_for("home"))
+
     return render_template("auth/account.html", user=user)
 
 
@@ -221,6 +252,41 @@ def force_password_change():
             return redirect(url_for("dashboard"))
 
     return render_template("auth/force_password_change.html")
+
+
+@auth_bp.route("/accept-event-invite/<token>", methods=["GET", "POST"])
+def accept_event_invite(token):
+    reset_token = PasswordResetToken.query.filter_by(token=token).first_or_404()
+    now = datetime.utcnow()
+
+    if reset_token.used_at or reset_token.expires_at < now:
+        flash("That event invitation link is no longer valid.", "error")
+        return redirect(url_for("auth.login"))
+
+    user = reset_token.user
+
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not name:
+            flash("Please enter your name.", "error")
+        elif not password:
+            flash("Please enter a password.", "error")
+        elif password != confirm_password:
+            flash("Passwords do not match.", "error")
+        else:
+            user.name = name
+            user.password_hash = generate_password_hash(password)
+            user.must_change_password = False
+            reset_token.used_at = now
+            EventCrewAssignment.query.filter_by(crew_email=user.email).update({"user_id": user.id})
+            db.session.commit()
+            flash("Your StageTrack account is ready. Please sign in to view your event.", "success")
+            return redirect(url_for("auth.login"))
+
+    return render_template("auth/accept_event_invite.html", invited_user=user)
 
 
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])

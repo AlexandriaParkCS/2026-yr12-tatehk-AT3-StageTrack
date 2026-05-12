@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Maintenance Queue{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Equipment care</p>
+        <h1>Maintenance queue</h1>
+        <p>Move issues from open to repairing to resolved without losing the report history.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.maintenance_print') }}">Print maintenance sheet</a>
+        <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
+    </div>
+</section>
+
+<section class="panel">
+    {% if reports %}
+        <div class="dashboard-list">
+            {% for report in reports %}
+                <article class="dashboard-item">
+                    <strong><a href="{{ url_for('equipment.detail', item_id=report.equipment.id) }}">{{ report.equipment.name }}</a></strong>
+                    <div class="dashboard-meta">
+                        <span>{{ report.reporter.name }}</span>
+                        <span>{{ report.equipment.location or "No location set" }}</span>
+                        <span>{{ report.created_at.strftime("%d %b %Y %I:%M %p") }}</span>
+                        <span class="status-pill {% if report.status != 'Resolved' %}status-pill-danger{% endif %}">{{ report.status }}</span>
+                    </div>
+                    <p class="support-copy">{{ report.description }}</p>
+                    <form method="post" action="{{ url_for('equipment.update_maintenance_status', report_id=report.id) }}" class="inline-form">
+                        <select name="status" aria-label="Update maintenance status for {{ report.equipment.name }}">
+                            {% for status in maintenance_statuses %}
+                                <option value="{{ status }}" {% if report.status == status %}selected{% endif %}>{{ status }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="button button-secondary" type="submit">Save status</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No maintenance requests have been submitted yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

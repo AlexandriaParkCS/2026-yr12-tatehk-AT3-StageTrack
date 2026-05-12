@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}StageTrack{% endblock %}</title>
+    <title>{% block title %}{{ system_settings.school_name }}{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/stagetrack-favicon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
@@ -13,8 +13,8 @@
         <a class="brand" href="{{ url_for('home') }}">
             <img class="brand-logo" src="{{ url_for('static', filename='images/stagetrack-logo.png') }}" alt="StageTrack logo">
             <span class="brand-copy">
-                <strong>StageTrack</strong>
-                <span>Backstage management</span>
+                <strong>{{ system_settings.school_name }}</strong>
+                <span>{{ system_settings.support_email or "Backstage management" }}</span>
             </span>
         </a>
         <nav class="site-nav">
@@ -35,6 +35,12 @@
     </header>
 
     <main class="page-shell">
+        {% if site_settings.announcement_banner_enabled and site_settings.announcement_banner_text %}
+            <section class="announcement-banner">
+                {{ site_settings.announcement_banner_text }}
+            </section>
+        {% endif %}
+
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <section class="flash-stack">

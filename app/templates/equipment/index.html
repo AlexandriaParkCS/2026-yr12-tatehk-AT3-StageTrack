@@ -14,10 +14,18 @@
 
 <section class="actions page-actions">
     <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Open QR scanner</a>
+    {% if current_user.role in manager_roles %}
+        <a class="button button-secondary" href="{{ url_for('equipment.consumables') }}">Consumables</a>
+        <a class="button button-secondary" href="{{ url_for('equipment.kits') }}">Equipment kits</a>
+        <a class="button button-secondary" href="{{ url_for('equipment.qr_labels', q=current_search, category=current_category, status=current_status, include_removed='on' if include_removed else '') }}">Bulk QR labels</a>
+    {% endif %}
+    {% if current_user.role in ["Admin", "Teacher"] %}
+        <a class="button button-secondary" href="{{ url_for('equipment.maintenance') }}">Maintenance queue</a>
+    {% endif %}
 </section>
 
 <section class="panel">
-    <form method="get" class="filter-bar">
+    <form method="get" class="filter-bar" data-auto-submit-filter>
         <input type="search" name="q" placeholder="Search name, serial, location, or description" value="{{ current_search }}">
         <select name="category">
             <option value="">All categories</option>
@@ -25,8 +33,16 @@
                 <option value="{{ category }}" {% if current_category == category %}selected{% endif %}>{{ category }}</option>
             {% endfor %}
         </select>
-        <button class="button button-secondary" type="submit">Filter</button>
     </form>
+
+    <div class="status-filter-row" aria-label="Equipment status filters">
+        <a class="status-filter-pill {% if not current_status %}is-active{% endif %}" href="{{ url_for('equipment.index', q=current_search, category=current_category, include_removed='on' if include_removed else '') }}">All</a>
+        {% for status in statuses if status != "Removed" %}
+            <a class="status-filter-pill {% if current_status == status %}is-active{% endif %}" href="{{ url_for('equipment.index', q=current_search, category=current_category, status=status, include_removed='on' if include_removed else '') }}">{{ status }}</a>
+        {% endfor %}
+        <a class="status-filter-pill {% if current_status == 'Overdue' %}is-active is-alert{% endif %}" href="{{ url_for('equipment.index', q=current_search, category=current_category, status='Overdue', include_removed='on' if include_removed else '') }}">Overdue</a>
+        <a class="status-filter-pill {% if current_status == 'Removed' %}is-active{% endif %}" href="{{ url_for('equipment.index', q=current_search, category=current_category, status='Removed', include_removed='on') }}">Removed</a>
+    </div>
 
     <div class="table-wrap">
         <table>
@@ -54,16 +70,25 @@
                         </td>
                         <td data-label="Name"><a href="{{ url_for('equipment.detail', item_id=item.id) }}"><strong>{{ item.name }}</strong></a></td>
                         <td data-label="Category">{{ item.category }}</td>
-                        <td data-label="Status"><span class="status-pill">{{ item.status }}</span></td>
+                        <td data-label="Status"><span class="status-pill {% if display_status(item, now) == 'Overdue' %}status-pill-danger{% endif %}">{{ display_status(item, now) }}</span></td>
                         <td data-label="Location">{{ item.location or "Not set" }}</td>
                         {% if current_user.role in manager_roles %}
                             <td data-label="Actions" class="actions">
                                 <a href="{{ url_for('equipment.detail', item_id=item.id) }}">View</a>
                                 <a href="{{ url_for('equipment.edit', item_id=item.id) }}">Edit</a>
                                 {% if current_user.role in ["Admin", "Teacher"] %}
-                                    <form method="post" action="{{ url_for('equipment.delete', item_id=item.id) }}">
-                                        <button type="submit" class="button-link">Delete</button>
-                                    </form>
+                                    {% if item.status == "Removed" %}
+                                        <form method="post" action="{{ url_for('equipment.restore', item_id=item.id) }}">
+                                            <button type="submit" class="button-link">Restore</button>
+                                        </form>
+                                        <form method="post" action="{{ url_for('equipment.permanently_delete', item_id=item.id) }}">
+                                            <button type="submit" class="button-link" data-confirm-message="Permanently delete this removed item and all of its history? This cannot be undone.">Delete forever</button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" action="{{ url_for('equipment.delete', item_id=item.id) }}">
+                                            <button type="submit" class="button-link">Remove</button>
+                                        </form>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                         {% endif %}

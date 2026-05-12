@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ kit.name }} Checkout Sheet{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Inventory kits</p>
+        <h1>{{ kit.name }} checkout sheet</h1>
+        <p>Print this page for event prep, sign-off, or pack-down checks.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.kit_checkout_sheet_pdf', kit_id=kit.id) }}">Download PDF</a>
+        <button class="button button-primary" type="button" onclick="window.print()">Print sheet</button>
+        <a class="button button-secondary" href="{{ url_for('equipment.kit_detail', kit_id=kit.id) }}">Back to kit</a>
+    </div>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Kit name</strong>
+                <div class="dashboard-meta"><span>{{ kit.name }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Description</strong>
+                <div class="dashboard-meta"><span>{{ kit.description or "No kit description set." }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Generated</strong>
+                <div class="dashboard-meta"><span>{{ generated_at.strftime("%d %b %Y %I:%M %p") }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Checked out items</strong>
+                <div class="dashboard-meta"><span>{{ active_checkout_map|length }}</span></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="qr-card">
+            <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ qr_filename) }}" alt="QR code for {{ kit.name }}">
+        </div>
+        <p class="support-copy">Scan this QR code with the StageTrack app to open the full kit directly.</p>
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Kit items checklist</h2>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Location</th>
+                    <th>Current holder</th>
+                    <th>Tick</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for link in kit.items %}
+                    {% set item = link.equipment %}
+                    {% set active_checkout = active_checkout_map.get(item.id) %}
+                    <tr>
+                        <td data-label="Item">{{ item.name }}</td>
+                        <td data-label="Category">{{ item.category }}</td>
+                        <td data-label="Location">{{ item.location or "Not set" }}</td>
+                        <td data-label="Current holder">
+                            {% if active_checkout %}
+                                {{ active_checkout.user.name }}
+                            {% else %}
+                                Not checked out
+                            {% endif %}
+                        </td>
+                        <td data-label="Tick">[ ]</td>
+                        <td data-label="Notes"></td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty-state">This kit does not have any equipment yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -20,6 +20,7 @@
                     <th>Name</th>
                     <th>Venue</th>
                     <th>Date</th>
+                    <th>Crew</th>
                     <th>Setup</th>
                     <th>Pack-down</th>
                     {% if current_user.role in manager_roles %}
@@ -30,9 +31,10 @@
             <tbody>
                 {% for event in events %}
                     <tr>
-                        <td data-label="Name">{{ event.name }}</td>
+                        <td data-label="Name"><a href="{{ url_for('events.detail', event_id=event.id) }}"><strong>{{ event.name }}</strong></a></td>
                         <td data-label="Venue">{{ event.venue }}</td>
                         <td data-label="Date">{{ event.event_date.strftime("%d %b %Y %I:%M %p") }}</td>
+                        <td data-label="Crew">{{ event.crew_assignments|length }}</td>
                         <td data-label="Setup">{{ event.setup_time.strftime("%d %b %Y %I:%M %p") if event.setup_time else "Not set" }}</td>
                         <td data-label="Pack-down">{{ event.packdown_time.strftime("%d %b %Y %I:%M %p") if event.packdown_time else "Not set" }}</td>
                         {% if current_user.role in manager_roles %}
@@ -48,7 +50,7 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="6" class="empty-state">No events created yet.</td>
+                        <td colspan="7" class="empty-state">No events created yet.</td>
                     </tr>
                 {% endfor %}
             </tbody>

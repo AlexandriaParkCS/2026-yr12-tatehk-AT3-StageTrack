@@ -66,4 +66,21 @@
         </form>
     </section>
 </section>
+
+<section class="panel danger-panel">
+    <div class="panel-header">
+        <h2>Delete account</h2>
+    </div>
+    <p class="support-copy">This permanently removes your account if it has no linked tasks, checkouts, or reports. Enter your current password to confirm.</p>
+    <form method="post" class="form-grid">
+        <input type="hidden" name="action" value="delete">
+        <label>
+            Current password
+            <input type="password" name="delete_password" required>
+        </label>
+        <div class="actions">
+            <button class="button button-danger" type="submit">Delete my account</button>
+        </div>
+    </form>
+</section>
 {% endblock %}

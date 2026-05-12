@@ -9,14 +9,15 @@
 </section>
 
 <section class="panel">
-    <form method="post" class="form-grid two-column">
+    <form method="post" class="form-grid two-column" data-crew-form>
+        <input type="hidden" name="crew_entry_count" value="{{ assignment_rows|length }}" data-crew-count>
         <label>
             Event name
             <input type="text" name="name" value="{{ event.name if event else '' }}" required>
         </label>
         <label>
             Venue
-            <input type="text" name="venue" value="{{ event.venue if event else '' }}" required>
+            <input type="text" name="venue" value="{{ event.venue if event else '' }}" list="venue-options" required>
         </label>
         <label>
             Event date and time
@@ -34,10 +35,70 @@
             Description
             <textarea name="description" rows="4">{{ event.description if event else '' }}</textarea>
         </label>
+        <section class="full-width assignment-panel">
+            <div class="panel-header">
+                <h2>Linked crew</h2>
+            </div>
+            <p class="support-copy">Enter each crew member's email and the role they are doing for this event. Existing users will be notified. New emails will receive a setup link and be created as Student Crew accounts.</p>
+            <div class="assignment-toolbar">
+                <button class="button button-secondary" type="button" data-add-crew-row>Add crew member</button>
+            </div>
+            <div class="assignment-list" data-crew-list>
+                {% for row in assignment_rows %}
+                    <article class="assignment-row assignment-row-wide" data-crew-row>
+                        <label>
+                            Crew email
+                            <input
+                                type="email"
+                                name="crew_email_{{ loop.index0 }}"
+                                value="{{ row.email }}"
+                                placeholder="crewmember@school.edu"
+                                data-crew-email
+                            >
+                        </label>
+                        <label>
+                            Event role
+                            <input
+                                type="text"
+                                name="crew_role_{{ loop.index0 }}"
+                                value="{{ row.crew_role }}"
+                                placeholder="Example: Lighting operator"
+                                list="crew-role-options"
+                                data-crew-role
+                            >
+                        </label>
+                        <button class="button button-secondary assignment-remove" type="button" data-remove-crew-row {% if assignment_rows|length == 1 %}hidden{% endif %}>Remove</button>
+                    </article>
+                {% endfor %}
+            </div>
+            <template data-crew-row-template>
+                <article class="assignment-row assignment-row-wide" data-crew-row>
+                    <label>
+                        Crew email
+                        <input type="email" placeholder="crewmember@school.edu" data-crew-email>
+                    </label>
+                    <label>
+                        Event role
+                        <input type="text" placeholder="Example: Lighting operator" list="crew-role-options" data-crew-role>
+                    </label>
+                    <button class="button button-secondary assignment-remove" type="button" data-remove-crew-row>Remove</button>
+                </article>
+            </template>
+        </section>
         <div class="actions full-width">
             <button class="button button-primary" type="submit">Save event</button>
             <a class="button button-secondary" href="{{ url_for('events.index') }}">Cancel</a>
         </div>
     </form>
 </section>
+<datalist id="venue-options">
+    {% for venue in venue_options %}
+        <option value="{{ venue }}"></option>
+    {% endfor %}
+</datalist>
+<datalist id="crew-role-options">
+    {% for role in crew_role_options %}
+        <option value="{{ role }}"></option>
+    {% endfor %}
+</datalist>
 {% endblock %}

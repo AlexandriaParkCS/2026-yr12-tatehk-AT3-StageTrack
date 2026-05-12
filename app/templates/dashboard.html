@@ -17,6 +17,22 @@
         </div>
         <strong>{{ stats.equipment_total }}</strong>
     </article>
+    {% if current_user.role in manager_roles %}
+        <article class="stat-card">
+            <div class="stat-label">
+                <span>Equipment kits</span>
+                <span class="stat-icon">KT</span>
+            </div>
+            <strong>{{ stats.kit_total }}</strong>
+        </article>
+        <article class="stat-card {% if stats.low_stock_consumables %}alert{% endif %}">
+            <div class="stat-label">
+                <span>Low stock</span>
+                <span class="stat-icon">CS</span>
+            </div>
+            <strong>{{ stats.low_stock_consumables }}</strong>
+        </article>
+    {% endif %}
     <article class="stat-card alert">
         <div class="stat-label">
             <span>Missing items</span>
@@ -38,6 +54,15 @@
         </div>
         <strong>{{ stats.overdue_items }}</strong>
     </article>
+    {% if current_user.role in ["Admin", "Teacher"] %}
+        <article class="stat-card {% if stats.broken_items %}alert{% endif %}">
+            <div class="stat-label">
+                <span>Broken items</span>
+                <span class="stat-icon">BR</span>
+            </div>
+            <strong>{{ stats.broken_items }}</strong>
+        </article>
+    {% endif %}
 </section>
 
 <section class="content-grid">
@@ -47,18 +72,25 @@
             <a class="button button-secondary" href="{{ url_for('tasks.index') }}">Open tasks</a>
         </div>
         {% if stats.task_snapshot %}
-            <div class="dashboard-list">
-                {% for task in stats.task_snapshot %}
-                    <article class="dashboard-item">
-                        <strong>{{ task.title }}</strong>
-                        <div class="dashboard-meta">
-                            <span>{{ task.event.name }}</span>
-                            <span>{{ task.due_time.strftime("%d %b %Y %I:%M %p") if task.due_time else "No due time" }}</span>
-                            <span class="status-pill">{{ task.status }}</span>
-                        </div>
-                    </article>
-                {% endfor %}
-            </div>
+                <div class="dashboard-list">
+                    {% for task in stats.task_snapshot %}
+                        <article class="dashboard-item">
+                            <strong>{{ task.title }}</strong>
+                            <div class="dashboard-meta">
+                                <span>{{ task.event.name }}</span>
+                                <span>{{ task.due_time.strftime("%d %b %Y %I:%M %p") if task.due_time else "No due time" }}</span>
+                                <span class="status-pill">{{ task.status }}</span>
+                            </div>
+                            <form method="post" action="{{ url_for('tasks.update_status', task_id=task.id) }}" class="dashboard-task-actions">
+                                <input type="hidden" name="next" value="{{ url_for('dashboard') }}">
+                                {% if task.status != "In Progress" %}
+                                    <button class="button button-secondary" type="submit" name="status" value="In Progress">Mark in progress</button>
+                                {% endif %}
+                                <button class="button button-primary" type="submit" name="status" value="Completed">Complete</button>
+                            </form>
+                        </article>
+                    {% endfor %}
+                </div>
         {% else %}
             <p class="empty-state">No tasks have been assigned yet.</p>
         {% endif %}
@@ -98,7 +130,7 @@
                 <div class="dashboard-list">
                     {% for checkout in stats.overdue_checkouts %}
                         <article class="dashboard-item">
-                            <strong>{{ checkout.equipment.name }}</strong>
+                            <strong><a href="{{ url_for('equipment.detail', item_id=checkout.equipment.id) }}">{{ checkout.equipment.name }}</a></strong>
                             <div class="dashboard-meta">
                                 <span>{{ checkout.user.name }}</span>
                                 <span>{{ checkout.event.name if checkout.event else "No event linked" }}</span>
@@ -112,6 +144,84 @@
                 <p class="empty-state">No equipment is overdue right now.</p>
             {% endif %}
         </section>
+
+        {% if current_user.role in ["Admin", "Teacher"] %}
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Broken items</h2>
+                    <a class="button button-secondary" href="{{ url_for('equipment.maintenance') }}">Open maintenance</a>
+                </div>
+                {% if stats.broken_snapshot %}
+                    <div class="dashboard-list">
+                        {% for item in stats.broken_snapshot %}
+                            <article class="dashboard-item">
+                                <strong><a href="{{ url_for('equipment.detail', item_id=item.id) }}">{{ item.name }}</a></strong>
+                                <div class="dashboard-meta">
+                                    <span>{{ item.location or "No location set" }}</span>
+                                    <span class="status-pill status-pill-danger">{{ item.status }}</span>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">No damaged or repair items need attention right now.</p>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {% if current_user.role in manager_roles %}
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Smart alerts</h2>
+                    <a class="button button-secondary" href="{{ url_for('equipment.kits') }}">Open kits</a>
+                </div>
+                {% if stats.due_soon_alerts or stats.long_overdue_alerts or stats.repeat_damage_alerts or stats.event_end_alerts %}
+                    <div class="dashboard-list">
+                        {% for checkout in stats.due_soon_alerts %}
+                            <article class="dashboard-item">
+                                <strong><a href="{{ url_for('equipment.detail', item_id=checkout.equipment.id) }}">{{ checkout.equipment.name }}</a></strong>
+                                <div class="dashboard-meta">
+                                    <span>Due soon</span>
+                                    <span>{{ checkout.user.name }}</span>
+                                    <span>{{ checkout.due_at.strftime("%d %b %Y %I:%M %p") }}</span>
+                                </div>
+                            </article>
+                        {% endfor %}
+                        {% for checkout in stats.long_overdue_alerts %}
+                            <article class="dashboard-item">
+                                <strong><a href="{{ url_for('equipment.detail', item_id=checkout.equipment.id) }}">{{ checkout.equipment.name }}</a></strong>
+                                <div class="dashboard-meta">
+                                    <span class="status-pill status-pill-danger">Long overdue</span>
+                                    <span>{{ checkout.user.name }}</span>
+                                    <span>{{ checkout.due_at.strftime("%d %b %Y %I:%M %p") }}</span>
+                                </div>
+                            </article>
+                        {% endfor %}
+                        {% for item in stats.repeat_damage_alerts %}
+                            <article class="dashboard-item">
+                                <strong><a href="{{ url_for('equipment.detail', item_id=item.id) }}">{{ item.name }}</a></strong>
+                                <div class="dashboard-meta">
+                                    <span>Repeat damage</span>
+                                    <span>{{ item.damage_reports|length }} reports logged</span>
+                                </div>
+                            </article>
+                        {% endfor %}
+                        {% for checkout in stats.event_end_alerts %}
+                            <article class="dashboard-item">
+                                <strong><a href="{{ url_for('equipment.detail', item_id=checkout.equipment.id) }}">{{ checkout.equipment.name }}</a></strong>
+                                <div class="dashboard-meta">
+                                    <span>Event ended</span>
+                                    <span><a href="{{ url_for('events.detail', event_id=checkout.event.id) }}">{{ checkout.event.name }}</a></span>
+                                    <span>{{ checkout.user.name }}</span>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">No smart alerts need attention right now.</p>
+                {% endif %}
+            </section>
+        {% endif %}
 
         <section class="panel">
             <div class="panel-header">

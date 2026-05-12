@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}System Settings{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Super admin</p>
+        <h1>System settings</h1>
+        <p>Control branding, permissions, inventory defaults, alerts, maintenance workflow, and PDF exports from one place.</p>
+    </div>
+    <a class="button button-secondary" href="{{ url_for('admin.users') }}">Back to admin</a>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid">
+        <div class="panel-header"><h2>General</h2></div>
+        <div class="two-column form-grid">
+            <label>School or business name<input type="text" name="school_name" value="{{ settings.school_name }}"></label>
+            <label>Support or contact email<input type="email" name="support_email" value="{{ settings.support_email or '' }}"></label>
+            <label>Timezone<input type="text" name="timezone_name" value="{{ settings.timezone_name }}"></label>
+            <label>Default date and time format<input type="text" name="datetime_format" value="{{ settings.datetime_format }}"></label>
+        </div>
+
+        <div class="panel-header"><h2>Roles and permissions</h2></div>
+        <div class="two-column form-grid">
+            <label class="checkbox-row"><input type="checkbox" name="student_crew_can_view_all_events" {% if settings.student_crew_can_view_all_events %}checked{% endif %}><span>Student Crew can view all events</span></label>
+            <label class="checkbox-row"><input type="checkbox" name="student_crew_can_view_all_equipment" {% if settings.student_crew_can_view_all_equipment %}checked{% endif %}><span>Student Crew can view all equipment</span></label>
+            <label>Minimum role to check out gear<select name="checkout_permission_role">{% for role in role_options %}<option value="{{ role }}" {% if settings.checkout_permission_role == role %}selected{% endif %}>{{ role }}</option>{% endfor %}</select></label>
+            <label>Minimum role to submit maintenance<select name="maintenance_submit_permission_role">{% for role in role_options %}<option value="{{ role }}" {% if settings.maintenance_submit_permission_role == role %}selected{% endif %}>{{ role }}</option>{% endfor %}</select></label>
+            <label>Minimum role to manage consumables<select name="consumable_manage_permission_role">{% for role in role_options %}<option value="{{ role }}" {% if settings.consumable_manage_permission_role == role %}selected{% endif %}>{{ role }}</option>{% endfor %}</select></label>
+            <label>Minimum role to print or export PDFs<select name="pdf_export_permission_role">{% for role in role_options %}<option value="{{ role }}" {% if settings.pdf_export_permission_role == role %}selected{% endif %}>{{ role }}</option>{% endfor %}</select></label>
+        </div>
+
+        <div class="panel-header"><h2>Equipment</h2></div>
+        <div class="two-column form-grid">
+            <label>Default equipment categories<textarea name="equipment_categories" rows="6">{{ settings.equipment_categories }}</textarea></label>
+            <label>Default equipment statuses<textarea name="equipment_statuses" rows="6">{{ settings.equipment_statuses }}</textarea></label>
+            <label class="checkbox-row"><input type="checkbox" name="serial_numbers_required" {% if settings.serial_numbers_required %}checked{% endif %}><span>Require serial numbers</span></label>
+            <label class="checkbox-row"><input type="checkbox" name="due_dates_required" {% if settings.due_dates_required %}checked{% endif %}><span>Require due dates on checkout</span></label>
+            <label>Due soon alert threshold (hours)<input type="number" name="due_soon_hours" value="{{ settings.due_soon_hours }}" min="1"></label>
+            <label>Long overdue threshold (days)<input type="number" name="long_overdue_days" value="{{ settings.long_overdue_days }}" min="1"></label>
+            <label class="checkbox-row"><input type="checkbox" name="auto_hide_removed_items" {% if settings.auto_hide_removed_items %}checked{% endif %}><span>Auto-hide removed items</span></label>
+        </div>
+
+        <div class="panel-header"><h2>Events</h2></div>
+        <div class="two-column form-grid">
+            <label>Default venues<textarea name="event_venues" rows="5">{{ settings.event_venues }}</textarea></label>
+            <label>Default crew roles<textarea name="event_crew_roles" rows="5">{{ settings.event_crew_roles }}</textarea></label>
+            <label class="checkbox-row"><input type="checkbox" name="auto_send_event_invites" {% if settings.auto_send_event_invites %}checked{% endif %}><span>Send event invites automatically</span></label>
+            <label>Event equipment sheet scope<select name="event_equipment_sheet_scope"><option value="checked_out_only" {% if settings.event_equipment_sheet_scope == 'checked_out_only' %}selected{% endif %}>Checked-out only</option><option value="all_linked" {% if settings.event_equipment_sheet_scope == 'all_linked' %}selected{% endif %}>All linked items</option></select></label>
+        </div>
+
+        <div class="panel-header"><h2>Consumables</h2></div>
+        <div class="two-column form-grid">
+            <label>Default consumable categories<textarea name="consumable_categories" rows="5">{{ settings.consumable_categories }}</textarea></label>
+            <label>Low-stock alert behavior<select name="low_stock_alert_behavior"><option value="at_or_below" {% if settings.low_stock_alert_behavior == 'at_or_below' %}selected{% endif %}>At or below reorder level</option><option value="below_only" {% if settings.low_stock_alert_behavior == 'below_only' %}selected{% endif %}>Below reorder level only</option></select></label>
+            <label class="checkbox-row"><input type="checkbox" name="students_can_log_consumables" {% if settings.students_can_log_consumables %}checked{% endif %}><span>Students can log taken stock</span></label>
+            <label class="checkbox-row"><input type="checkbox" name="negative_consumable_adjustments_manager_only" {% if settings.negative_consumable_adjustments_manager_only %}checked{% endif %}><span>Negative manual adjustments are manager-only</span></label>
+        </div>
+
+        <div class="panel-header"><h2>Notifications</h2></div>
+        <div class="two-column form-grid">
+            <label>Overdue alert recipients<textarea name="overdue_alert_recipients" rows="4">{{ settings.overdue_alert_recipients }}</textarea></label>
+            <label>Maintenance alert recipients<textarea name="maintenance_alert_recipients" rows="4">{{ settings.maintenance_alert_recipients }}</textarea></label>
+            <label>Enquiry alert recipients<textarea name="enquiry_alert_recipients" rows="4">{{ settings.enquiry_alert_recipients }}</textarea></label>
+            <label>Low-stock alert recipients<textarea name="low_stock_alert_recipients" rows="4">{{ settings.low_stock_alert_recipients }}</textarea></label>
+            <label>Password reset email subject<input type="text" name="password_reset_email_subject" value="{{ settings.password_reset_email_subject }}"></label>
+            <label>Welcome email subject<input type="text" name="welcome_email_subject" value="{{ settings.welcome_email_subject }}"></label>
+            <label>Equipment checkout email subject<input type="text" name="equipment_checkout_email_subject" value="{{ settings.equipment_checkout_email_subject }}"></label>
+            <label>Equipment overdue email subject<input type="text" name="equipment_overdue_email_subject" value="{{ settings.equipment_overdue_email_subject }}"></label>
+            <label>Equipment return email subject<input type="text" name="equipment_return_email_subject" value="{{ settings.equipment_return_email_subject }}"></label>
+            <label>Maintenance email subject<input type="text" name="maintenance_email_subject" value="{{ settings.maintenance_email_subject }}"></label>
+            <label class="full-width">Enquiry email subject<input type="text" name="enquiry_email_subject" value="{{ settings.enquiry_email_subject }}"></label>
+        </div>
+
+        <div class="panel-header"><h2>Maintenance</h2></div>
+        <div class="two-column form-grid">
+            <label>Custom repair statuses<textarea name="maintenance_statuses" rows="5">{{ settings.maintenance_statuses }}</textarea></label>
+            <label>Who can resolve reports<select name="maintenance_resolve_permission_role">{% for role in role_options %}<option value="{{ role }}" {% if settings.maintenance_resolve_permission_role == role %}selected{% endif %}>{{ role }}</option>{% endfor %}</select></label>
+            <label class="checkbox-row"><input type="checkbox" name="resolved_visible_in_queue" {% if settings.resolved_visible_in_queue %}checked{% endif %}><span>Resolved reports stay visible in queue</span></label>
+            <label>Repeat-damage alert threshold<input type="number" name="repeat_damage_threshold" value="{{ settings.repeat_damage_threshold }}" min="1"></label>
+        </div>
+
+        <div class="panel-header"><h2>PDF and exports</h2></div>
+        <div class="two-column form-grid">
+            <label>Paper size<select name="pdf_paper_size"><option value="A4" {% if settings.pdf_paper_size == 'A4' %}selected{% endif %}>A4</option><option value="LETTER" {% if settings.pdf_paper_size == 'LETTER' %}selected{% endif %}>Letter</option></select></label>
+            <label class="checkbox-row"><input type="checkbox" name="pdf_show_header" {% if settings.pdf_show_header %}checked{% endif %}><span>Show logo or header in PDFs</span></label>
+            <label>Header text<input type="text" name="pdf_header_text" value="{{ settings.pdf_header_text }}"></label>
+            <label>Footer text<input type="text" name="pdf_footer_text" value="{{ settings.pdf_footer_text }}"></label>
+            <label class="checkbox-row"><input type="checkbox" name="pdf_include_checkboxes" {% if settings.pdf_include_checkboxes %}checked{% endif %}><span>Include check boxes</span></label>
+            <label class="checkbox-row"><input type="checkbox" name="pdf_include_notes" {% if settings.pdf_include_notes %}checked{% endif %}><span>Include notes areas</span></label>
+            <label class="checkbox-row"><input type="checkbox" name="pdf_include_signatures" {% if settings.pdf_include_signatures %}checked{% endif %}><span>Include signature lines</span></label>
+        </div>
+
+        <div class="actions">
+            <button class="button button-primary" type="submit">Save system settings</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

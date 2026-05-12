@@ -140,16 +140,19 @@ def update_status(task_id):
 
     if task.assigned_to != user.id and not is_manager(user):
         flash("You do not have permission to update that task.", "error")
-        return redirect(url_for("tasks.index"))
+        next_url = request.form.get("next", "").strip()
+        return redirect(next_url or url_for("tasks.index"))
 
     if new_status not in STATUS_OPTIONS:
         flash("Invalid task status.", "error")
-        return redirect(url_for("tasks.index"))
+        next_url = request.form.get("next", "").strip()
+        return redirect(next_url or url_for("tasks.index"))
 
     task.status = new_status
     db.session.commit()
     flash("Task status updated.", "success")
-    return redirect(url_for("tasks.index"))
+    next_url = request.form.get("next", "").strip()
+    return redirect(next_url or url_for("tasks.index"))
 
 
 @tasks_bp.route("/<int:task_id>/delete", methods=["POST"])

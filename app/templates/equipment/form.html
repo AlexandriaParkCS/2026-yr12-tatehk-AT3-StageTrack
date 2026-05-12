@@ -25,15 +25,23 @@
         </label>
         <label>
             Serial number
-            <input type="text" name="serial_number" value="{{ item.serial_number if item else '' }}">
+            <input type="text" name="serial_number" value="{{ item.serial_number or '' if item else '' }}" {% if serial_numbers_required %}required{% endif %}>
         </label>
         <label>
             Condition
-            <input type="text" name="condition" value="{{ item.condition if item else 'Good' }}">
+            <input type="text" name="condition" value="{{ item.condition or 'Good' if item else 'Good' }}">
         </label>
         <label>
             Location
-            <input type="text" name="location" value="{{ item.location if item else '' }}">
+            <select name="location">
+                <option value="">No storage location set</option>
+                {% for location in storage_locations %}
+                    <option value="{{ location.label }}" {% if item and item.location == location.label %}selected{% endif %}>{{ location.label }}</option>
+                {% endfor %}
+                {% if item and item.location and not current_location_managed %}
+                    <option value="{{ item.location }}" selected>{{ item.location }} (legacy location)</option>
+                {% endif %}
+            </select>
         </label>
         <label>
             Status
@@ -65,5 +73,6 @@
             <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Cancel</a>
         </div>
     </form>
+    <p class="support-copy">Storage locations are managed in Admin so rooms and shelves stay consistent across the whole inventory.</p>
 </section>
 {% endblock %}

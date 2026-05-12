@@ -12,6 +12,9 @@
         {% if current_user.role in manager_roles %}
             <a class="button button-secondary" href="{{ url_for('equipment.edit', item_id=item.id) }}">Edit item</a>
         {% endif %}
+        {% if current_user.role in ["Admin", "Teacher"] %}
+            <a class="button button-secondary" href="{{ url_for('equipment.maintenance') }}">Maintenance queue</a>
+        {% endif %}
         <a class="button button-primary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
     </div>
 </section>
@@ -20,7 +23,18 @@
     <section class="panel scanner-banner">
         <p class="eyebrow">Scanned in StageTrack</p>
         <h2>Equipment located and ready to manage</h2>
-        <p class="support-copy">This item was opened from the in-app scanner, so the checkout controls are ready below.</p>
+        <p class="support-copy">This item was opened from the in-app scanner, so the most useful actions are ready below for fast phone use.</p>
+        <div class="scanner-action-strip">
+            {% if current_user.role in manager_roles and active_checkout %}
+                <a class="button button-primary" href="#checkout-status">Return item</a>
+            {% elif current_user.role in manager_roles and item.status == "Available" %}
+                <a class="button button-primary" href="#checkout-status">Check out item</a>
+            {% endif %}
+            {% if current_user.role != "Viewer" %}
+                <a class="button button-secondary" href="#maintenance-request">Report issue</a>
+            {% endif %}
+            <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Scan next item</a>
+        </div>
     </section>
 {% endif %}
 
@@ -59,6 +73,22 @@
                 <strong>Description</strong>
                 <div class="dashboard-meta"><span>{{ item.description or "No description yet." }}</span></div>
             </article>
+            {% if item.kit_links %}
+                <article class="dashboard-item">
+                    <strong>Part of kits</strong>
+                    <div class="dashboard-meta">
+                        {% for link in item.kit_links %}
+                            <span><a href="{{ url_for('equipment.kit_detail', kit_id=link.kit.id) }}">{{ link.kit.name }}</a></span>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% endif %}
+            {% if item.status == "Removed" %}
+                <article class="dashboard-item">
+                    <strong>Inventory state</strong>
+                    <div class="dashboard-meta"><span>This item is currently removed from the live inventory list.</span></div>
+                </article>
+            {% endif %}
         </div>
     </section>
 </section>
@@ -82,7 +112,7 @@
         </div>
     </section>
 
-    <section class="panel">
+    <section class="panel" id="checkout-status">
         <div class="panel-header">
             <h2>Checkout status</h2>
         </div>
@@ -115,8 +145,18 @@
                 </form>
             {% endif %}
         {% else %}
-            <p class="support-copy">This item is currently available for checkout.</p>
-            {% if current_user.role in manager_roles %}
+            <p class="support-copy">
+                {% if item.status == "Damaged" %}
+                    This item is marked as damaged and cannot be checked out until it is reviewed.
+                {% elif item.status == "Under Repair" %}
+                    This item is currently under repair and cannot be checked out.
+                {% elif item.status == "Removed" %}
+                    This item is removed from the live inventory list and cannot be checked out.
+                {% else %}
+                    This item is currently available for checkout.
+                {% endif %}
+            </p>
+            {% if current_user.role in manager_roles and item.status == "Available" %}
                 <form method="post" action="{{ url_for('equipment.checkout', item_id=item.id) }}" class="form-grid">
                     <label>
                         Crew or staff member
@@ -144,7 +184,53 @@
                         <button class="button button-primary" type="submit">Lend out equipment</button>
                     </div>
                 </form>
+            {% elif current_user.role in manager_roles %}
+                <p class="empty-state">Update the equipment status first if you want this item to become available for lending again.</p>
             {% endif %}
+        {% endif %}
+    </section>
+</section>
+
+<section class="utility-grid">
+    <section class="panel" id="maintenance-request">
+        <div class="panel-header">
+            <h2>Maintenance request</h2>
+        </div>
+        {% if current_user.role != "Viewer" %}
+            <p class="support-copy">Seen a fault, breakage, or issue with this item? Send a clear maintenance note and StageTrack will flag the equipment and notify teachers.</p>
+            <form method="post" action="{{ url_for('equipment.maintenance_request', item_id=item.id) }}" class="form-grid">
+                <label>
+                    What is wrong?
+                    <textarea name="description" rows="5" placeholder="Example: Left speaker handle is cracked and the cable input is loose." required></textarea>
+                </label>
+                <div class="actions">
+                    <button class="button button-primary" type="submit">Submit maintenance request</button>
+                </div>
+            </form>
+        {% else %}
+            <p class="empty-state">Viewer accounts can view equipment details, but they cannot submit maintenance requests.</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Recent maintenance notes</h2>
+        </div>
+        {% if maintenance_reports %}
+            <div class="dashboard-list">
+                {% for report in maintenance_reports %}
+                    <article class="dashboard-item">
+                        <strong>{{ report.reporter.name }}</strong>
+                        <div class="dashboard-meta">
+                            <span>{{ report.created_at.strftime("%d %b %Y %I:%M %p") }}</span>
+                            <span class="status-pill status-pill-danger">{{ report.status }}</span>
+                        </div>
+                        <p class="support-copy">{{ report.description }}</p>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No maintenance requests have been logged for this item yet.</p>
         {% endif %}
     </section>
 </section>

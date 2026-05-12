@@ -1,15 +1,51 @@
 document.querySelectorAll("form").forEach((form) => {
-    const destructiveButton = form.querySelector(".button-link");
-    if (!destructiveButton) {
+    const destructiveButtons = form.querySelectorAll(".button-link");
+    if (!destructiveButtons.length) {
         return;
     }
 
+    let submitter = null;
+
+    destructiveButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            submitter = button;
+        });
+    });
+
     form.addEventListener("submit", (event) => {
-        const confirmed = window.confirm("Are you sure you want to delete this item?");
+        const actionButton = submitter || form.querySelector(".button-link");
+        const message = actionButton?.getAttribute("data-confirm-message") || "Are you sure you want to delete this item?";
+        const confirmed = window.confirm(message);
         if (!confirmed) {
             event.preventDefault();
         }
+        submitter = null;
     });
+});
+
+document.querySelectorAll("[data-auto-submit-filter]").forEach((form) => {
+    let submitTimer = null;
+    const searchInput = form.querySelector('input[type="search"]');
+
+    form.querySelectorAll("select").forEach((select) => {
+        select.addEventListener("change", () => {
+            form.submit();
+        });
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener("input", () => {
+            window.clearTimeout(submitTimer);
+            submitTimer = window.setTimeout(() => {
+                form.submit();
+            }, 350);
+        });
+
+        searchInput.addEventListener("search", () => {
+            window.clearTimeout(submitTimer);
+            form.submit();
+        });
+    }
 });
 
 const modalTriggers = document.querySelectorAll("[data-open-modal]");
@@ -59,3 +95,80 @@ document.addEventListener("keydown", (event) => {
     });
     document.body.classList.remove("modal-open");
 });
+
+const crewForm = document.querySelector("[data-crew-form]");
+
+if (crewForm) {
+    const crewList = crewForm.querySelector("[data-crew-list]");
+    const crewTemplate = crewForm.querySelector("[data-crew-row-template]");
+    const crewCountInput = crewForm.querySelector("[data-crew-count]");
+    const addCrewButton = crewForm.querySelector("[data-add-crew-row]");
+
+    const syncCrewRows = () => {
+        const rows = Array.from(crewList.querySelectorAll("[data-crew-row]"));
+        rows.forEach((row, index) => {
+            const emailInput = row.querySelector("[data-crew-email]");
+            const roleInput = row.querySelector("[data-crew-role]");
+            const removeButton = row.querySelector("[data-remove-crew-row]");
+
+            if (emailInput) {
+                emailInput.name = `crew_email_${index}`;
+            }
+            if (roleInput) {
+                roleInput.name = `crew_role_${index}`;
+            }
+            if (removeButton) {
+                removeButton.hidden = rows.length === 1;
+            }
+        });
+        crewCountInput.value = rows.length;
+    };
+
+    const addCrewRow = () => {
+        const fragment = crewTemplate.content.cloneNode(true);
+        crewList.appendChild(fragment);
+        syncCrewRows();
+        const rows = crewList.querySelectorAll("[data-crew-row]");
+        const newestRow = rows[rows.length - 1];
+        newestRow?.querySelector("[data-crew-email]")?.focus();
+    };
+
+    addCrewButton?.addEventListener("click", () => {
+        addCrewRow();
+    });
+
+    crewList?.addEventListener("click", (event) => {
+        const removeButton = event.target.closest("[data-remove-crew-row]");
+        if (!removeButton) {
+            return;
+        }
+
+        const row = removeButton.closest("[data-crew-row]");
+        if (!row) {
+            return;
+        }
+
+        row.remove();
+        syncCrewRows();
+    });
+
+    crewList?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") {
+            return;
+        }
+
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement) || target.tagName !== "INPUT") {
+            return;
+        }
+
+        if (!target.closest("[data-crew-row]")) {
+            return;
+        }
+
+        event.preventDefault();
+        addCrewRow();
+    });
+
+    syncCrewRows();
+}

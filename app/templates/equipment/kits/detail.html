@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}{{ kit.name }}{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Inventory kits</p>
+        <h1>{{ kit.name }}</h1>
+        <p>{{ kit.description or "Use kits to prepare and move groups of equipment together." }}</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.kits') }}">Back to kits</a>
+        <a class="button button-secondary" href="{{ url_for('equipment.edit_kit', kit_id=kit.id) }}">Edit kit</a>
+        {% if current_user.role in ["Admin", "Teacher"] %}
+            <form method="post" action="{{ url_for('equipment.delete_kit', kit_id=kit.id) }}">
+                <button class="button button-danger" type="submit">Delete kit</button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+
+{% if scanned %}
+    <section class="panel scanner-banner">
+        <p class="eyebrow">Scanned in StageTrack</p>
+        <h2>Kit located and ready to manage</h2>
+        <p class="support-copy">This kit was opened from the in-app scanner, so the bundle actions are ready below for fast phone use.</p>
+        <div class="scanner-action-strip">
+            <a class="button button-primary" href="#kit-actions">Open kit actions</a>
+            <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Scan next code</a>
+        </div>
+    </section>
+{% endif %}
+
+<section class="utility-grid">
+    <section class="panel" id="kit-actions">
+        <div class="panel-header">
+            <h2>Kit actions</h2>
+        </div>
+        <p class="support-copy">Check out the whole bundle in one step or return everything together when the event is finished.</p>
+        <form method="post" action="{{ url_for('equipment.checkout_kit', kit_id=kit.id) }}" class="form-grid">
+            <label>
+                Crew or staff member
+                <select name="user_id" required>
+                    <option value="">Select a user</option>
+                    {% for user in crew_users %}
+                        <option value="{{ user.id }}">{{ user.name }} - {{ user.role }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Event
+                <select name="event_id">
+                    <option value="">No event linked</option>
+                    {% for event in events %}
+                        <option value="{{ event.id }}">{{ event.name }} - {{ event.event_date.strftime("%d %b %Y") }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Due date
+                <input type="datetime-local" name="due_at">
+            </label>
+            <div class="actions">
+                <button class="button button-primary" type="submit">Check out full kit</button>
+                <button class="button button-secondary" formaction="{{ url_for('equipment.checkin_kit', kit_id=kit.id) }}" formnovalidate type="submit">Check in checked-out items</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Kit summary</h2>
+        </div>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Total items</strong>
+                <div class="dashboard-meta"><span>{{ kit.items|length }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Currently checked out</strong>
+                <div class="dashboard-meta"><span>{{ active_checkout_map|length }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Kit QR code</strong>
+                <div class="dashboard-meta">
+                    <span><a href="{{ url_for('equipment.kit_checkout_sheet', kit_id=kit.id) }}">Print checkout sheet</a></span>
+                    <span><a href="{{ url_for('equipment.kit_labels') }}">Print kit labels</a></span>
+                </div>
+                <div class="qr-card">
+                    <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ qr_filename) }}" alt="QR code for {{ kit.name }}">
+                </div>
+                <p class="support-copy">{{ public_qr_target }}</p>
+            </article>
+        </div>
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Included equipment</h2>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Location</th>
+                    <th>Current checkout</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for link in kit.items %}
+                    {% set item = link.equipment %}
+                    {% set active_checkout = active_checkout_map.get(item.id) %}
+                    <tr>
+                        <td data-label="Name"><a href="{{ url_for('equipment.detail', item_id=item.id) }}"><strong>{{ item.name }}</strong></a></td>
+                        <td data-label="Category">{{ item.category }}</td>
+                        <td data-label="Status">
+                            <span class="status-pill {% if display_status(item, now) == 'Overdue' %}status-pill-danger{% endif %}">
+                                {{ display_status(item, now) }}
+                            </span>
+                        </td>
+                        <td data-label="Location">{{ item.location or "Not set" }}</td>
+                        <td data-label="Current checkout">
+                            {% if active_checkout %}
+                                {{ active_checkout.user.name }}
+                            {% else %}
+                                Available
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-state">This kit does not have any equipment yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

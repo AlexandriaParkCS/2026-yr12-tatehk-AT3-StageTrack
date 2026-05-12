@@ -7,14 +7,20 @@
         <img class="coming-soon-logo" src="{{ url_for('static', filename='images/stagetrack-logo.png') }}" alt="StageTrack logo">
         <p class="hero-badge">Launching soon</p>
         <h1 class="coming-soon-title">StageTrack is coming soon.</h1>
-        </div>
+        {% if site_settings.maintenance_mode_message %}
+            <p class="coming-soon-copy">{{ site_settings.maintenance_mode_message }}</p>
+        {% endif %}
         <div class="hero-actions">
             <a class="button button-primary" href="{{ url_for('auth.login') }}">Staff access</a>
             {% if registration_open %}
                 <a class="button button-secondary" href="{{ url_for('auth.register') }}">Initial setup</a>
             {% endif %}
         </div>
-        <p class="coming-soon-note"></p>
+        <p class="coming-soon-note">
+            {% if not site_settings.maintenance_mode_message %}
+                Staff can still sign in while the public site is being prepared.
+            {% endif %}
+        </p>
     </section>
 </section>
 {% endblock %}

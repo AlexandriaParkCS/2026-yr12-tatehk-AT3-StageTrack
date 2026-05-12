@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Maintenance Sheet{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Equipment care</p>
+        <h1>Maintenance sheet</h1>
+        <p>Print this page or save it as a PDF for repair planning and issue tracking.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.maintenance_pdf') }}">Download PDF</a>
+        <button class="button button-primary" type="button" onclick="window.print()">Print sheet</button>
+        <a class="button button-secondary" href="{{ url_for('equipment.maintenance') }}">Back to maintenance</a>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Equipment</th>
+                    <th>Reporter</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Reported</th>
+                    <th>Issue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                    <tr>
+                        <td data-label="Equipment">{{ report.equipment.name }}</td>
+                        <td data-label="Reporter">{{ report.reporter.name }}</td>
+                        <td data-label="Location">{{ report.equipment.location or "Not set" }}</td>
+                        <td data-label="Status">{{ report.status }}</td>
+                        <td data-label="Reported">{{ report.created_at.strftime("%d %b %Y %I:%M %p") }}</td>
+                        <td data-label="Issue">{{ report.description }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty-state">No maintenance requests have been submitted yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

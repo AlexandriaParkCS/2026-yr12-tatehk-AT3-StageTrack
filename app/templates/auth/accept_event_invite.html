@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Finish Account Setup{% endblock %}
+{% block content %}
+<section class="auth-layout">
+    <section class="auth-card">
+        <p class="eyebrow">Event invite</p>
+        <h1>Finish your StageTrack setup</h1>
+        <p class="support-copy">You have been added to a StageTrack event. Set your name and password to activate your account.</p>
+        <form method="post" class="form-grid">
+            <label>
+                Email
+                <input type="email" value="{{ invited_user.email }}" readonly>
+            </label>
+            <label>
+                Full name
+                <input type="text" name="name" value="{{ invited_user.name if invited_user.name != 'Pending crew member' else '' }}" required>
+            </label>
+            <label>
+                Password
+                <input type="password" name="password" required>
+            </label>
+            <label>
+                Confirm password
+                <input type="password" name="confirm_password" required>
+            </label>
+            <div class="auth-actions">
+                <button class="button button-primary" type="submit">Activate account</button>
+            </div>
+        </form>
+    </section>
+
+    <aside class="auth-meta">
+        <section class="auth-side-card">
+            <p class="eyebrow">What happens next</p>
+            <h2>Your event access will unlock as soon as setup is complete.</h2>
+            <ul>
+                <li>Sign in with your email and new password</li>
+                <li>Open the Events page to view your assigned events</li>
+                <li>Use your account on phone or laptop during setup and show nights</li>
+            </ul>
+        </section>
+    </aside>
+</section>
+{% endblock %}

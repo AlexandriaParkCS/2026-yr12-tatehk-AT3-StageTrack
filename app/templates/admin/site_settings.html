@@ -20,12 +20,27 @@
             Enquiry recipient email
             <input type="email" name="enquiry_recipient_email" value="{{ settings.enquiry_recipient_email or '' }}" placeholder="hello@stagetrack.xyz">
         </label>
+        <label>
+            Maintenance mode message
+            <textarea name="maintenance_mode_message" rows="4" placeholder="Example: StageTrack is currently being prepared for launch. Staff access is still available.">{{ settings.maintenance_mode_message or '' }}</textarea>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" name="announcement_banner_enabled" {% if settings.announcement_banner_enabled %}checked{% endif %}>
+            <span>Show announcement banner</span>
+        </label>
+        <label>
+            Announcement banner text
+            <textarea name="announcement_banner_text" rows="3" placeholder="Example: Demo site only. Some features are still being tested.">{{ settings.announcement_banner_text or '' }}</textarea>
+        </label>
         <p class="support-copy">
             When this is turned on, visitors see the coming soon page first. Staff can still use the staff access button to sign in.
             When it is turned off, the normal public StageTrack landing page is shown instead.
         </p>
         <p class="support-copy">
             Public enquiries from the website contact form will be sent to the email address above, using the SMTP settings configured in Admin.
+        </p>
+        <p class="support-copy">
+            The maintenance mode message is shown on the public holding page, and the announcement banner can be used for launch notes, testing warnings, or quick public updates.
         </p>
         <div class="actions">
             <button class="button button-primary" type="submit">Save site settings</button>

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }} Equipment Sheet{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Event paperwork</p>
+        <h1>{{ event.name }} equipment sheet</h1>
+        <p>Print this page or save it as a PDF for setup, sign-off, and pack-down checks.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('events.equipment_sheet_pdf', event_id=event.id) }}">Download PDF</a>
+        <button class="button button-primary" type="button" onclick="window.print()">Print sheet</button>
+        <a class="button button-secondary" href="{{ url_for('events.detail', event_id=event.id) }}">Back to event</a>
+    </div>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Venue</strong>
+                <div class="dashboard-meta"><span>{{ event.venue }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Event date</strong>
+                <div class="dashboard-meta"><span>{{ event.event_date.strftime("%d %b %Y %I:%M %p") }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Setup time</strong>
+                <div class="dashboard-meta"><span>{{ event.setup_time.strftime("%d %b %Y %I:%M %p") if event.setup_time else "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Pack-down time</strong>
+                <div class="dashboard-meta"><span>{{ event.packdown_time.strftime("%d %b %Y %I:%M %p") if event.packdown_time else "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Generated</strong>
+                <div class="dashboard-meta"><span>{{ generated_at.strftime("%d %b %Y %I:%M %p") }}</span></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Crew overview</h2>
+        </div>
+        {% if event.crew_assignments %}
+            <div class="dashboard-list">
+                {% for assignment in event.crew_assignments %}
+                    <article class="dashboard-item">
+                        <strong>{{ assignment.user.name }}</strong>
+                        <div class="dashboard-meta">
+                            <span>{{ assignment.crew_role }}</span>
+                            <span>{{ assignment.crew_email }}</span>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No crew linked yet.</p>
+        {% endif %}
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Equipment checklist</h2>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Equipment</th>
+                    <th>Category</th>
+                    <th>Assigned to</th>
+                    <th>Location</th>
+                    <th>Out</th>
+                    <th>Returned</th>
+                    <th>Tick</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for checkout in linked_checkouts %}
+                    <tr>
+                        <td data-label="Equipment">{{ checkout.equipment.name }}</td>
+                        <td data-label="Category">{{ checkout.equipment.category }}</td>
+                        <td data-label="Assigned to">{{ checkout.user.name }}</td>
+                        <td data-label="Location">{{ checkout.equipment.location or "Not set" }}</td>
+                        <td data-label="Out">{{ checkout.checkout_time.strftime("%d %b %Y %I:%M %p") }}</td>
+                        <td data-label="Returned">{{ checkout.return_time.strftime("%d %b %Y %I:%M %p") if checkout.return_time else "Still checked out" }}</td>
+                        <td data-label="Tick">[ ]</td>
+                        <td data-label="Notes"></td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="empty-state">No equipment is linked to this event yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

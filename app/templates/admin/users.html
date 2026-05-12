@@ -9,6 +9,8 @@
     </div>
     <div class="actions">
         <a class="button button-secondary" href="{{ url_for('admin.site_settings') }}">Site settings</a>
+        <a class="button button-secondary" href="{{ url_for('admin.system_settings') }}">System settings</a>
+        <a class="button button-secondary" href="{{ url_for('admin.location_settings') }}">Location settings</a>
         <a class="button button-secondary" href="{{ url_for('admin.email_settings') }}">Email settings</a>
         <a class="button button-primary" href="{{ url_for('admin.create_user') }}">Add user</a>
     </div>
@@ -40,7 +42,7 @@
             <tbody>
                 {% for user in users %}
                     <tr>
-                        <td data-label="Name">{{ user.name }}</td>
+                        <td data-label="Name"><a href="{{ url_for('admin.user_detail', user_id=user.id) }}"><strong>{{ user.name }}</strong></a></td>
                         <td data-label="Email">{{ user.email }}</td>
                         <td data-label="Role">
                             <form method="post" action="{{ url_for('admin.update_role', user_id=user.id) }}" class="inline-form">
@@ -64,6 +66,9 @@
                             </form>
                             <form method="post" action="{{ url_for('admin.send_reset', user_id=user.id) }}">
                                 <button type="submit" class="button button-secondary">Send reset</button>
+                            </form>
+                            <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}">
+                                <button type="submit" class="button button-danger">Delete account</button>
                             </form>
                         </td>
                     </tr>

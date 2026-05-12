@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{% if item and item.id %}Edit{% else %}Add{% endif %} Consumable{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Stock room</p>
+        <h1>{% if item and item.id %}Edit{% else %}Add{% endif %} consumable</h1>
+        <p>Set the live stock level and the point where StageTrack should start treating it as low stock.</p>
+    </div>
+    <a class="button button-secondary" href="{{ url_for('equipment.consumables') }}">Back to consumables</a>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid two-column">
+        <label>
+            Name
+            <input type="text" name="name" value="{{ item.name if item else '' }}" required>
+        </label>
+        <label>
+            Category
+            <select name="category" required>
+                <option value="">Select category</option>
+                {% for category in categories %}
+                    <option value="{{ category }}" {% if item and item.category == category %}selected{% endif %}>{{ category }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Storage location
+            <input type="text" name="location" value="{{ item.location if item else '' }}" placeholder="Example: Sound cage - Shelf B1">
+        </label>
+        <label>
+            Unit label
+            <input type="text" name="unit_label" value="{{ item.unit_label if item else 'units' }}" placeholder="packs, rolls, batteries">
+        </label>
+        <label>
+            Quantity on hand
+            <input type="number" name="quantity_on_hand" value="{{ item.quantity_on_hand if item else 0 }}" required>
+        </label>
+        <label>
+            Reorder level
+            <input type="number" name="reorder_level" value="{{ item.reorder_level if item else 0 }}" required>
+        </label>
+        <label class="full-width">
+            Notes
+            <textarea name="notes" rows="4">{{ item.notes if item else '' }}</textarea>
+        </label>
+        <div class="actions full-width">
+            <button class="button button-primary" type="submit">Save consumable</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

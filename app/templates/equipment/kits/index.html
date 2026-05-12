@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Equipment Kits{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Inventory kits</p>
+        <h1>Equipment kits</h1>
+        <p>Group commonly used gear into ready-to-go bundles like hall PA packs, mic kits, and DJ setups.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
+        <a class="button button-secondary" href="{{ url_for('equipment.kit_labels') }}">Print kit labels</a>
+        <a class="button button-primary" href="{{ url_for('equipment.create_kit') }}">Create kit</a>
+    </div>
+</section>
+
+<section class="panel">
+    {% if kits %}
+        <div class="dashboard-list">
+            {% for kit in kits %}
+                <article class="dashboard-item">
+                    <strong><a href="{{ url_for('equipment.kit_detail', kit_id=kit.id) }}">{{ kit.name }}</a></strong>
+                    <div class="dashboard-meta">
+                        <span>{{ kit.items|length }} item{{ "" if kit.items|length == 1 else "s" }}</span>
+                        <span>
+                            {% set active_count = namespace(value=0) %}
+                            {% for link in kit.items %}
+                                {% if active_checkout_for_item(link.equipment.id) %}
+                                    {% set active_count.value = active_count.value + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ active_count.value }} checked out
+                        </span>
+                    </div>
+                    <p class="support-copy">{{ kit.description or "No kit description yet." }}</p>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No equipment kits have been created yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

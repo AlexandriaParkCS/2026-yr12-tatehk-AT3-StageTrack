@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Consumables{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Stock room</p>
+        <h1>Consumables</h1>
+        <p>Track stock levels for things like batteries, tape, adapters, and other items that get used up over time.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
+        <a class="button button-primary" href="{{ url_for('equipment.create_consumable') }}">Add consumable</a>
+    </div>
+</section>
+
+<section class="utility-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Low stock alerts</h2>
+        </div>
+        {% if low_stock %}
+            <div class="dashboard-list">
+                {% for item in low_stock %}
+                    <article class="dashboard-item">
+                        <strong><a href="{{ url_for('equipment.consumable_detail', item_id=item.id) }}">{{ item.name }}</a></strong>
+                        <div class="dashboard-meta">
+                            <span>{{ item.quantity_on_hand }} {{ item.unit_label }}</span>
+                            <span>Reorder at {{ item.reorder_level }}</span>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No consumables are below their reorder level right now.</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>All consumables</h2>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Location</th>
+                        <th>On hand</th>
+                        <th>Reorder level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in consumables %}
+                        <tr>
+                            <td data-label="Name"><a href="{{ url_for('equipment.consumable_detail', item_id=item.id) }}"><strong>{{ item.name }}</strong></a></td>
+                            <td data-label="Category">{{ item.category }}</td>
+                            <td data-label="Location">{{ item.location or "Not set" }}</td>
+                            <td data-label="On hand">
+                                <span class="status-pill {% if item.quantity_on_hand <= item.reorder_level %}status-pill-danger{% endif %}">
+                                    {{ item.quantity_on_hand }} {{ item.unit_label }}
+                                </span>
+                            </td>
+                            <td data-label="Reorder level">{{ item.reorder_level }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="empty-state">No consumable items have been created yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}

@@ -48,6 +48,22 @@
             Welcome sender
             <input type="email" name="smtp_from_welcome_email" value="{{ settings.smtp_from_welcome_email }}" placeholder="welcome@stagetrack.xyz">
         </label>
+        <label>
+            Equipment sender
+            <input type="email" name="smtp_from_equipment_email" value="{{ settings.smtp_from_equipment_email }}" placeholder="equipment@stagetrack.xyz">
+        </label>
+        <label class="full-width checkbox-row">
+            <input type="checkbox" name="notify_equipment_checkout" {% if settings.notify_equipment_checkout %}checked{% endif %}>
+            <span>Send email when equipment is checked out</span>
+        </label>
+        <label class="full-width checkbox-row">
+            <input type="checkbox" name="notify_equipment_overdue" {% if settings.notify_equipment_overdue %}checked{% endif %}>
+            <span>Send one overdue reminder email when equipment passes its due date</span>
+        </label>
+        <label class="full-width checkbox-row">
+            <input type="checkbox" name="notify_equipment_return" {% if settings.notify_equipment_return %}checked{% endif %}>
+            <span>Send email when equipment is returned</span>
+        </label>
         <div class="actions full-width">
             <button class="button button-primary" type="submit">Save email settings</button>
         </div>
@@ -69,6 +85,7 @@
                 <option value="general">Default sender</option>
                 <option value="password_reset">Password reset sender</option>
                 <option value="welcome">Welcome sender</option>
+                <option value="equipment">Equipment sender</option>
             </select>
         </label>
         <div class="actions">
