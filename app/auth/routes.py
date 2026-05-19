@@ -6,7 +6,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..email_service import build_password_reset_url, issue_password_reset_token, send_password_reset_email
 from ..extensions import db
-from ..models import EventCrewAssignment, PasswordResetToken, User
+from ..models import EventCrewAssignment, PasswordResetToken, ScanLog, User
 from . import auth_bp
 
 
@@ -219,6 +219,7 @@ def account():
                     flash(reason, "error")
                 else:
                     PasswordResetToken.query.filter_by(user_id=user.id).delete()
+                    ScanLog.query.filter_by(user_id=user.id).delete()
                     db.session.delete(user)
                     db.session.commit()
                     session.clear()

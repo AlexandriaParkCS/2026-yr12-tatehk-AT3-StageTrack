@@ -13,7 +13,7 @@ from ..email_service import (
     send_welcome_email,
 )
 from ..extensions import db
-from ..models import Equipment, PasswordResetToken, StorageLocation, User
+from ..models import Equipment, PasswordResetToken, ScanLog, StorageLocation, User
 from ..site_service import get_site_settings
 from ..system_settings_service import get_system_settings, settings_role_options
 from . import admin_bp
@@ -381,6 +381,7 @@ def delete_user(user_id):
         return redirect(url_for("admin.users"))
 
     PasswordResetToken.query.filter_by(user_id=user.id).delete()
+    ScanLog.query.filter_by(user_id=user.id).delete()
     db.session.delete(user)
     db.session.commit()
     flash("User account deleted.", "success")

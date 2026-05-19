@@ -20,6 +20,7 @@ class User(db.Model):
     damage_reports = db.relationship("DamageReport", back_populates="reporter", lazy=True)
     password_reset_tokens = db.relationship("PasswordResetToken", back_populates="user", lazy=True)
     event_assignments = db.relationship("EventCrewAssignment", back_populates="user", lazy=True)
+    scan_logs = db.relationship("ScanLog", back_populates="user", lazy=True)
 
 
 class Equipment(db.Model):
@@ -38,6 +39,7 @@ class Equipment(db.Model):
     checkouts = db.relationship("EquipmentCheckout", back_populates="equipment", lazy=True)
     damage_reports = db.relationship("DamageReport", back_populates="equipment", lazy=True)
     kit_links = db.relationship("EquipmentKitItem", back_populates="equipment", cascade="all, delete-orphan", lazy=True)
+    scan_logs = db.relationship("ScanLog", back_populates="equipment", lazy=True)
 
 
 class StorageLocation(db.Model):
@@ -62,6 +64,7 @@ class EquipmentKit(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     items = db.relationship("EquipmentKitItem", back_populates="kit", cascade="all, delete-orphan", lazy=True)
+    scan_logs = db.relationship("ScanLog", back_populates="kit", lazy=True)
 
 
 class EquipmentKitItem(db.Model):
@@ -71,6 +74,20 @@ class EquipmentKitItem(db.Model):
 
     kit = db.relationship("EquipmentKit", back_populates="items")
     equipment = db.relationship("Equipment", back_populates="kit_links")
+
+
+class ScanLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    equipment_id = db.Column(db.Integer, db.ForeignKey("equipment.id"))
+    kit_id = db.Column(db.Integer, db.ForeignKey("equipment_kit.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    source = db.Column(db.String(50), nullable=False, default="public_camera")
+    destination = db.Column(db.String(50), nullable=False, default="public_page")
+    scanned_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    equipment = db.relationship("Equipment", back_populates="scan_logs")
+    kit = db.relationship("EquipmentKit", back_populates="scan_logs")
+    user = db.relationship("User", back_populates="scan_logs")
 
 
 class ConsumableItem(db.Model):

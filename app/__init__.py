@@ -14,7 +14,7 @@ from .email_service import send_enquiry_email, send_equipment_overdue_email
 from .equipment import equipment_bp
 from .events import events_bp
 from .extensions import db
-from .models import ConsumableAdjustment, ConsumableItem, EquipmentCheckout, EquipmentKit, EquipmentKitItem, Event, EventCrewAssignment, Equipment, StorageLocation, SystemSettings, Task, User
+from .models import ConsumableAdjustment, ConsumableItem, EquipmentCheckout, EquipmentKit, EquipmentKitItem, Event, EventCrewAssignment, Equipment, ScanLog, StorageLocation, SystemSettings, Task, User
 from .site_service import get_site_settings
 from .system_settings_service import alert_recipient_list, format_datetime_for_display, get_system_settings
 from .tasks import tasks_bp
@@ -223,7 +223,11 @@ def create_app(config_class=Config):
                 Task.due_time.asc(),
                 Task.created_at.desc(),
             ).limit(5).all(),
+            "recent_scans": [],
         }
+
+        if user.role in {"Admin", "Teacher", "Stage Manager"}:
+            stats["recent_scans"] = ScanLog.query.order_by(ScanLog.scanned_at.desc()).limit(6).all()
         return render_template("dashboard.html", stats=stats)
 
     @app.cli.command("init-db")
@@ -329,6 +333,8 @@ def ensure_schema_updates():
         ConsumableAdjustment.__table__.create(db.engine)
     if "system_settings" not in table_names:
         SystemSettings.__table__.create(db.engine)
+    if "scan_log" not in table_names:
+        ScanLog.__table__.create(db.engine)
 
 
 app = create_app()

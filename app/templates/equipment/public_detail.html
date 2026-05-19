@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }}{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Public equipment page</p>
+        <h1>{{ item.name }}</h1>
+        <p>This QR code belongs to a StageTrack inventory item. You can see the current equipment summary here, and staff can sign in for full management tools.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-primary" href="{{ url_for('auth.login') }}">Staff access</a>
+    </div>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        {% if item.image_path %}
+            <img class="detail-image" src="{{ url_for('static', filename='uploads/' ~ item.image_path) }}" alt="{{ item.name }}">
+        {% else %}
+            <div class="detail-image detail-image-placeholder">No equipment image uploaded yet.</div>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Category</strong>
+                <div class="dashboard-meta"><span>{{ item.category }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Status</strong>
+                <div class="dashboard-meta">
+                    <span class="status-pill {% if active_checkout and active_checkout.due_at and active_checkout.due_at < now %}status-pill-danger{% endif %}">
+                        {% if active_checkout and active_checkout.due_at and active_checkout.due_at < now %}
+                            Overdue
+                        {% else %}
+                            {{ item.status }}
+                        {% endif %}
+                    </span>
+                </div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Location</strong>
+                <div class="dashboard-meta"><span>{{ item.location or "Not listed" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Description</strong>
+                <div class="dashboard-meta"><span>{{ item.description or "No public description has been added yet." }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Current lend state</strong>
+                <div class="dashboard-meta">
+                    {% if active_checkout %}
+                        <span>Currently assigned through StageTrack</span>
+                        <span>{% if active_checkout.due_at %}Due {{ active_checkout.due_at|app_dt }}{% else %}No due date listed{% endif %}</span>
+                    {% else %}
+                        <span>Not currently checked out</span>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </section>
+</section>
+
+<section class="utility-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>QR details</h2>
+        </div>
+        <p class="support-copy">Staff scanning this code inside StageTrack get the faster management workflow automatically.</p>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>QR target</strong>
+                <div class="dashboard-meta"><span>{{ public_qr_target }}</span></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Recent maintenance activity</h2>
+        </div>
+        {% if recent_reports %}
+            <div class="dashboard-list">
+                {% for report in recent_reports %}
+                    <article class="dashboard-item">
+                        <strong>{{ report.status }}</strong>
+                        <div class="dashboard-meta">
+                            <span>{{ report.created_at|app_dt }}</span>
+                        </div>
+                        <p class="support-copy">{{ report.description }}</p>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No maintenance history is visible for this item right now.</p>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

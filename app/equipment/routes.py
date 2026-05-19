@@ -11,7 +11,7 @@ from ..auth.routes import current_user, login_required, role_required
 from ..email_service import send_equipment_checkout_email, send_equipment_return_email, send_maintenance_request_email
 from ..extensions import db
 from ..pdf_service import build_kit_checkout_pdf, build_maintenance_pdf
-from ..models import ConsumableAdjustment, ConsumableItem, DamageReport, Equipment, EquipmentCheckout, EquipmentKit, EquipmentKitItem, Event, StorageLocation, User
+from ..models import ConsumableAdjustment, ConsumableItem, DamageReport, Equipment, EquipmentCheckout, EquipmentKit, EquipmentKitItem, Event, ScanLog, StorageLocation, User
 from ..system_settings_service import (
     alert_recipient_list,
     consumable_categories as configured_consumable_categories,
@@ -73,6 +73,19 @@ def generate_qr_code(item):
     item.qr_code = filename
 
 
+def qr_code_exists(filename):
+    return bool(filename and (qr_code_dir() / filename).exists())
+
+
+def ensure_item_qr_code(item):
+    if not item.id:
+        return False
+    if qr_code_exists(item.qr_code):
+        return False
+    generate_qr_code(item)
+    return True
+
+
 def kit_qr_filename(kit_id):
     return f"kit-{kit_id}.png"
 
@@ -89,6 +102,13 @@ def generate_kit_qr_code(kit):
     destination = qr_code_dir() / filename
     qr_image = qrcode.make(build_kit_qr_target_url(kit.id))
     qr_image.save(destination)
+    return filename
+
+
+def ensure_kit_qr_code(kit):
+    filename = kit_qr_filename(kit.id)
+    if not qr_code_exists(filename):
+        generate_kit_qr_code(kit)
     return filename
 
 
@@ -126,6 +146,33 @@ def delete_image(image_path):
 
 def active_checkout_for_item(item_id):
     return EquipmentCheckout.query.filter_by(equipment_id=item_id, return_time=None).order_by(EquipmentCheckout.checkout_time.desc()).first()
+
+
+def scan_source():
+    source = (request.args.get("source") or request.form.get("source") or "public_camera").strip().lower()
+    if source not in {"public_camera", "app_scanner", "manual_entry"}:
+        return "public_camera"
+    return source
+
+
+def log_scan_event(*, equipment=None, kit=None, source="public_camera", destination="public_page"):
+    entry = ScanLog(
+        equipment_id=equipment.id if equipment else None,
+        kit_id=kit.id if kit else None,
+        user_id=current_user().id if current_user() else None,
+        source=source,
+        destination=destination,
+    )
+    db.session.add(entry)
+    db.session.commit()
+    return entry
+
+
+def redirect_target(default_endpoint, **values):
+    next_url = (request.form.get("next") or request.args.get("next") or "").strip()
+    if next_url.startswith("/"):
+        return next_url
+    return url_for(default_endpoint, **values)
 
 
 def display_status(item, now=None):
@@ -262,8 +309,8 @@ def qr_labels():
         equipment_items = [item for item in equipment_items if item.status == status_filter]
 
     for item in equipment_items:
-        if not item.qr_code:
-            generate_qr_code(item)
+        if ensure_item_qr_code(item):
+            db.session.add(item)
     db.session.commit()
 
     return render_template("equipment/qr_labels.html", equipment_items=equipment_items, display_status=display_status, now=local_now)
@@ -309,11 +356,12 @@ def create_kit():
 @role_required("Admin", "Teacher", "Stage Manager")
 def kit_detail(kit_id):
     kit = EquipmentKit.query.get_or_404(kit_id)
-    qr_filename = generate_kit_qr_code(kit)
+    qr_filename = ensure_kit_qr_code(kit)
     active_checkouts = active_checkout_records_for_kit(kit)
     active_checkout_map = {checkout.equipment_id: checkout for checkout in active_checkouts}
     crew_users = User.query.filter_by(is_active=True).order_by(User.name.asc()).all()
     events = Event.query.order_by(Event.event_date.asc()).all()
+    recent_scans = ScanLog.query.filter_by(kit_id=kit.id).order_by(ScanLog.scanned_at.desc()).limit(6).all()
     return render_template(
         "equipment/kits/detail.html",
         kit=kit,
@@ -325,6 +373,24 @@ def kit_detail(kit_id):
         qr_filename=qr_filename,
         public_qr_target=build_kit_qr_target_url(kit.id),
         scanned=request.args.get("scanner") == "1",
+        recent_scans=recent_scans,
+    )
+
+
+@equipment_bp.route("/kits/<int:kit_id>/public")
+def public_kit_detail(kit_id):
+    kit = EquipmentKit.query.get_or_404(kit_id)
+    qr_filename = ensure_kit_qr_code(kit)
+    active_checkouts = active_checkout_records_for_kit(kit)
+    active_checkout_map = {checkout.equipment_id: checkout for checkout in active_checkouts}
+    return render_template(
+        "equipment/kits/public_detail.html",
+        kit=kit,
+        active_checkout_map=active_checkout_map,
+        qr_filename=qr_filename,
+        now=datetime.now(),
+        display_status=display_status,
+        public_qr_target=build_kit_qr_target_url(kit.id),
     )
 
 
@@ -363,7 +429,7 @@ def checkout_kit(kit_id):
     settings = get_system_settings()
     if not role_meets_requirement(current_user().role, settings.checkout_permission_role):
         flash("Your account does not have permission to check out kits.", "error")
-        return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+        return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
     user_id = request.form.get("user_id", type=int)
     event_id = request.form.get("event_id", type=int)
     assignee = db.session.get(User, user_id) if user_id else None
@@ -374,20 +440,20 @@ def checkout_kit(kit_id):
         due_at = parse_due_at(due_at_value)
     except ValueError:
         flash("Please enter a valid due date and time.", "error")
-        return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+        return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
 
     if not assignee or not assignee.is_active:
         flash("Select an active crew member or staff member.", "error")
-        return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+        return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
     if event_id and not event:
         flash("Select a valid event or leave the event field blank.", "error")
-        return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+        return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
     if settings.due_dates_required and not due_at:
         flash("A due date is required for kit checkouts.", "error")
-        return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+        return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
     if due_at and due_at <= datetime.now():
         flash("The due date must be in the future.", "error")
-        return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+        return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
 
     blocking_items = []
     for link in kit.items:
@@ -397,7 +463,7 @@ def checkout_kit(kit_id):
 
     if blocking_items:
         flash(f"This kit cannot be checked out until these items are ready: {', '.join(blocking_items[:4])}", "error")
-        return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+        return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
 
     for link in kit.items:
         item = link.equipment
@@ -413,7 +479,7 @@ def checkout_kit(kit_id):
 
     db.session.commit()
     flash(f"{kit.name} checked out to {assignee.name}.", "success")
-    return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+    return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
 
 
 @equipment_bp.route("/kits/<int:kit_id>/checkin", methods=["POST"])
@@ -424,7 +490,7 @@ def checkin_kit(kit_id):
 
     if not active_checkouts:
         flash("This kit does not have any items currently checked out.", "error")
-        return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+        return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
 
     for checkout in active_checkouts:
         checkout.return_time = datetime.utcnow()
@@ -433,7 +499,7 @@ def checkin_kit(kit_id):
 
     db.session.commit()
     flash(f"{kit.name} has been checked back in.", "success")
-    return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
+    return redirect(redirect_target("equipment.kit_detail", kit_id=kit.id))
 
 
 @equipment_bp.route("/kits/<int:kit_id>/delete", methods=["POST"])
@@ -444,6 +510,7 @@ def delete_kit(kit_id):
         flash("Check the kit back in before deleting it.", "error")
         return redirect(url_for("equipment.kit_detail", kit_id=kit.id))
     delete_qr_code(kit_qr_filename(kit.id))
+    ScanLog.query.filter_by(kit_id=kit.id).delete(synchronize_session=False)
     db.session.delete(kit)
     db.session.commit()
     flash("Equipment kit deleted.", "success")
@@ -459,7 +526,7 @@ def kit_labels():
     kits = EquipmentKit.query.order_by(EquipmentKit.name.asc()).all()
     qr_filenames = {}
     for kit in kits:
-        qr_filenames[kit.id] = generate_kit_qr_code(kit)
+        qr_filenames[kit.id] = ensure_kit_qr_code(kit)
     return render_template("equipment/kits/labels.html", kits=kits, qr_filenames=qr_filenames)
 
 
@@ -472,7 +539,7 @@ def kit_checkout_sheet(kit_id):
     kit = EquipmentKit.query.get_or_404(kit_id)
     active_checkouts = active_checkout_records_for_kit(kit)
     active_checkout_map = {checkout.equipment_id: checkout for checkout in active_checkouts}
-    qr_filename = generate_kit_qr_code(kit)
+    qr_filename = ensure_kit_qr_code(kit)
     return render_template(
         "equipment/kits/checkout_sheet.html",
         kit=kit,
@@ -497,10 +564,13 @@ def kit_checkout_sheet_pdf(kit_id):
 
 @equipment_bp.route("/kits/qr/<int:kit_id>")
 def kit_qr_entry(kit_id):
-    EquipmentKit.query.get_or_404(kit_id)
-    if not current_user():
-        return redirect(url_for("home"))
-    return redirect(url_for("equipment.kit_detail", kit_id=kit_id, scanner=1))
+    kit = EquipmentKit.query.get_or_404(kit_id)
+    source = scan_source()
+    if current_user() and source == "app_scanner":
+        log_scan_event(kit=kit, source=source, destination="kit_scan_actions")
+        return redirect(url_for("equipment.kit_detail", kit_id=kit_id, scanner=1))
+    log_scan_event(kit=kit, source=source, destination="kit_public_page")
+    return redirect(url_for("equipment.public_kit_detail", kit_id=kit_id))
 
 
 @equipment_bp.route("/consumables")
@@ -703,10 +773,56 @@ def scanner():
 
 @equipment_bp.route("/qr/<int:item_id>")
 def qr_entry(item_id):
-    Equipment.query.get_or_404(item_id)
-    if not current_user():
-        return redirect(url_for("home"))
-    return redirect(url_for("equipment.detail", item_id=item_id, scanner=1))
+    item = Equipment.query.get_or_404(item_id)
+    source = scan_source()
+    if current_user() and source == "app_scanner":
+        log_scan_event(equipment=item, source=source, destination="scan_actions")
+        return redirect(url_for("equipment.scan_actions", item_id=item_id))
+    log_scan_event(equipment=item, source=source, destination="public_page")
+    return redirect(url_for("equipment.public_detail", item_id=item_id))
+
+
+@equipment_bp.route("/public/<int:item_id>")
+def public_detail(item_id):
+    item = Equipment.query.get_or_404(item_id)
+    if ensure_item_qr_code(item):
+        db.session.commit()
+    active_checkout = active_checkout_for_item(item.id)
+    recent_reports = DamageReport.query.filter_by(equipment_id=item.id).order_by(DamageReport.created_at.desc()).limit(3).all()
+    return render_template(
+        "equipment/public_detail.html",
+        item=item,
+        active_checkout=active_checkout,
+        public_qr_target=build_qr_target_url(item.id),
+        now=datetime.now(),
+        recent_reports=recent_reports,
+    )
+
+
+@equipment_bp.route("/<int:item_id>/scan-actions")
+@login_required
+def scan_actions(item_id):
+    settings = get_system_settings()
+    user = current_user()
+    if user.role == "Student Crew" and not settings.student_crew_can_view_all_equipment:
+        flash("Student Crew access to scanned equipment is disabled in system settings.", "error")
+        return redirect(url_for("dashboard"))
+    item = Equipment.query.get_or_404(item_id)
+    if ensure_item_qr_code(item):
+        db.session.commit()
+    active_checkout = active_checkout_for_item(item.id)
+    maintenance_reports = DamageReport.query.filter_by(equipment_id=item.id).order_by(DamageReport.created_at.desc()).limit(3).all()
+    crew_users = User.query.filter_by(is_active=True).order_by(User.name.asc()).all()
+    events = Event.query.order_by(Event.event_date.asc()).all()
+    return render_template(
+        "equipment/scan_actions.html",
+        item=item,
+        active_checkout=active_checkout,
+        maintenance_reports=maintenance_reports,
+        crew_users=crew_users,
+        events=events,
+        now=datetime.now(),
+    )
 
 
 @equipment_bp.route("/<int:item_id>")
@@ -719,13 +835,13 @@ def detail(item_id):
         return redirect(url_for("dashboard"))
     item = Equipment.query.get_or_404(item_id)
     local_now = datetime.now()
-    if not item.qr_code:
-        generate_qr_code(item)
+    if ensure_item_qr_code(item):
         db.session.commit()
 
     active_checkout = active_checkout_for_item(item.id)
     checkout_history = EquipmentCheckout.query.filter_by(equipment_id=item.id).order_by(EquipmentCheckout.checkout_time.desc()).limit(8).all()
     maintenance_reports = DamageReport.query.filter_by(equipment_id=item.id).order_by(DamageReport.created_at.desc()).limit(5).all()
+    recent_scans = ScanLog.query.filter_by(equipment_id=item.id).order_by(ScanLog.scanned_at.desc()).limit(6).all()
     crew_users = User.query.filter_by(is_active=True).order_by(User.name.asc()).all()
     events = Event.query.order_by(Event.event_date.asc()).all()
     return render_template(
@@ -739,6 +855,7 @@ def detail(item_id):
         now=local_now,
         public_qr_target=build_qr_target_url(item.id),
         scanned=request.args.get("scanner") == "1",
+        recent_scans=recent_scans,
     )
 
 
@@ -779,7 +896,7 @@ def create():
                 item.image_path = uploaded_image
             db.session.add(item)
             db.session.commit()
-            generate_qr_code(item)
+            ensure_item_qr_code(item)
             db.session.commit()
             flash("Equipment added successfully and QR code generated.", "success")
             return redirect(url_for("equipment.index"))
@@ -847,7 +964,7 @@ def edit(item_id):
                 if item.image_path:
                     delete_image(item.image_path)
                 item.image_path = replace_image
-            generate_qr_code(item)
+            ensure_item_qr_code(item)
             db.session.commit()
             flash("Equipment updated and QR code refreshed.", "success")
             return redirect(url_for("equipment.index"))
@@ -873,11 +990,11 @@ def maintenance_request(item_id):
 
     if not role_meets_requirement(reporter.role, settings.maintenance_submit_permission_role):
         flash("Your account does not have permission to submit maintenance requests.", "error")
-        return redirect(url_for("equipment.detail", item_id=item.id))
+        return redirect(redirect_target("equipment.detail", item_id=item.id))
 
     if not description:
         flash("Please describe what is wrong with the equipment.", "error")
-        return redirect(url_for("equipment.detail", item_id=item.id))
+        return redirect(redirect_target("equipment.detail", item_id=item.id))
 
     report = DamageReport(
         equipment_id=item.id,
@@ -909,7 +1026,7 @@ def maintenance_request(item_id):
         flash(notice, "error")
 
     flash("Maintenance request submitted and equipment marked for attention.", "success")
-    return redirect(url_for("equipment.detail", item_id=item.id))
+    return redirect(redirect_target("equipment.detail", item_id=item.id))
 
 
 @equipment_bp.route("/maintenance/<int:report_id>/status", methods=["POST"])
@@ -954,7 +1071,7 @@ def checkout(item_id):
     settings = get_system_settings()
     if not role_meets_requirement(current_user().role, settings.checkout_permission_role):
         flash("Your account does not have permission to check out equipment.", "error")
-        return redirect(url_for("equipment.detail", item_id=item.id, scanner=1))
+        return redirect(redirect_target("equipment.detail", item_id=item.id, scanner=1))
     active_checkout = active_checkout_for_item(item.id)
     user_id = request.form.get("user_id", type=int)
     event_id = request.form.get("event_id", type=int)
@@ -966,7 +1083,7 @@ def checkout(item_id):
         due_at = parse_due_at(due_at_value)
     except ValueError:
         flash("Please enter a valid due date and time.", "error")
-        return redirect(url_for("equipment.detail", item_id=item.id, scanner=1))
+        return redirect(redirect_target("equipment.detail", item_id=item.id, scanner=1))
 
     if active_checkout:
         flash("This item is already checked out.", "error")
@@ -1003,7 +1120,7 @@ def checkout(item_id):
             pass
         flash(f"{item.name} checked out to {assignee.name}.", "success")
 
-    return redirect(url_for("equipment.detail", item_id=item.id, scanner=1))
+    return redirect(redirect_target("equipment.detail", item_id=item.id, scanner=1))
 
 
 @equipment_bp.route("/<int:item_id>/checkin", methods=["POST"])
@@ -1025,7 +1142,7 @@ def checkin(item_id):
             pass
         flash(f"{item.name} has been checked back in.", "success")
 
-    return redirect(url_for("equipment.detail", item_id=item.id, scanner=1))
+    return redirect(redirect_target("equipment.detail", item_id=item.id, scanner=1))
 
 
 @equipment_bp.route("/<int:item_id>/delete", methods=["POST"])
@@ -1066,6 +1183,7 @@ def permanently_delete(item_id):
     if item.qr_code:
         delete_qr_code(item.qr_code)
 
+    ScanLog.query.filter_by(equipment_id=item.id).delete(synchronize_session=False)
     EquipmentCheckout.query.filter_by(equipment_id=item.id).delete(synchronize_session=False)
     DamageReport.query.filter_by(equipment_id=item.id).delete(synchronize_session=False)
     db.session.delete(item)

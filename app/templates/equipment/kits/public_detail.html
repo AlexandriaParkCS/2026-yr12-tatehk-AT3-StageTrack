@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ kit.name }}{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Public kit page</p>
+        <h1>{{ kit.name }}</h1>
+        <p>This QR code belongs to a StageTrack equipment kit. Staff can sign in for full bundle check-out tools.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-primary" href="{{ url_for('auth.login') }}">Staff access</a>
+    </div>
+</section>
+
+<section class="utility-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Kit summary</h2>
+        </div>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Total items</strong>
+                <div class="dashboard-meta"><span>{{ kit.items|length }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Description</strong>
+                <div class="dashboard-meta"><span>{{ kit.description or "No description yet." }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>QR target</strong>
+                <div class="dashboard-meta"><span>{{ public_qr_target }}</span></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Included equipment</h2>
+        </div>
+        <div class="dashboard-list">
+            {% for link in kit.items %}
+                {% set item = link.equipment %}
+                {% set active_checkout = active_checkout_map.get(item.id) %}
+                <article class="dashboard-item">
+                    <strong>{{ item.name }}</strong>
+                    <div class="dashboard-meta">
+                        <span>{{ item.category }}</span>
+                        <span>{{ item.location or "No location set" }}</span>
+                        <span class="status-pill {% if display_status(item, now) == 'Overdue' %}status-pill-danger{% endif %}">{{ display_status(item, now) }}</span>
+                        {% if active_checkout %}
+                            <span>Assigned through StageTrack</span>
+                        {% endif %}
+                    </div>
+                </article>
+            {% else %}
+                <p class="empty-state">This kit does not have any linked equipment yet.</p>
+            {% endfor %}
+        </div>
+    </section>
+</section>
+{% endblock %}

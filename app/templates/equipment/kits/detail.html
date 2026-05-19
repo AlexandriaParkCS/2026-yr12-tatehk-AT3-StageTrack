@@ -37,6 +37,7 @@
         </div>
         <p class="support-copy">Check out the whole bundle in one step or return everything together when the event is finished.</p>
         <form method="post" action="{{ url_for('equipment.checkout_kit', kit_id=kit.id) }}" class="form-grid">
+            <input type="hidden" name="next" value="{{ url_for('equipment.kit_detail', kit_id=kit.id, scanner=1) }}">
             <label>
                 Crew or staff member
                 <select name="user_id" required>
@@ -92,6 +93,28 @@
             </article>
         </div>
     </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Recent scans</h2>
+    </div>
+    {% if recent_scans %}
+        <div class="dashboard-list">
+            {% for scan in recent_scans %}
+                <article class="dashboard-item">
+                    <strong>{{ scan.destination.replace('_', ' ')|title }}</strong>
+                    <div class="dashboard-meta">
+                        <span>{{ scan.source.replace('_', ' ')|title }}</span>
+                        <span>{{ scan.user.name if scan.user else "Public visitor" }}</span>
+                        <span>{{ scan.scanned_at|app_dt }}</span>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No scan history has been logged for this kit yet.</p>
+    {% endif %}
 </section>
 
 <section class="panel">

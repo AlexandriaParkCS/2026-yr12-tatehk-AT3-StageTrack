@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Scan Actions - {{ item.name }}{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Live scan</p>
+        <h1>{{ item.name }}</h1>
+        <p>Use the quickest StageTrack actions first, then jump into the full item page only if you need more detail.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Scan next item</a>
+        <a class="button button-primary" href="{{ url_for('equipment.detail', item_id=item.id, scanner=1) }}">Full item page</a>
+    </div>
+</section>
+
+<section class="scan-action-layout">
+    <section class="panel scan-action-panel">
+        <div class="panel-header">
+            <h2>Quick status</h2>
+        </div>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Status</strong>
+                <div class="dashboard-meta">
+                    <span class="status-pill {% if active_checkout and active_checkout.due_at and active_checkout.due_at < now %}status-pill-danger{% endif %}">
+                        {% if active_checkout and active_checkout.due_at and active_checkout.due_at < now %}
+                            Overdue
+                        {% else %}
+                            {{ item.status }}
+                        {% endif %}
+                    </span>
+                    <span>{{ item.category }}</span>
+                </div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Location</strong>
+                <div class="dashboard-meta"><span>{{ item.location or "Not set" }}</span></div>
+            </article>
+            {% if active_checkout %}
+                <article class="dashboard-item">
+                    <strong>Currently with</strong>
+                    <div class="dashboard-meta">
+                        <span>{{ active_checkout.user.name }}</span>
+                        <span>{{ active_checkout.event.name if active_checkout.event else "No event linked" }}</span>
+                        <span>{% if active_checkout.due_at %}Due {{ active_checkout.due_at|app_dt }}{% else %}No due date{% endif %}</span>
+                    </div>
+                </article>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="panel scan-action-panel">
+        <div class="panel-header">
+            <h2>Fast actions</h2>
+        </div>
+        {% if current_user.role in manager_roles and active_checkout %}
+            <form method="post" action="{{ url_for('equipment.checkin', item_id=item.id) }}" class="form-grid">
+                <input type="hidden" name="next" value="{{ url_for('equipment.scan_actions', item_id=item.id) }}">
+                <button class="button button-primary button-large" type="submit">Return item now</button>
+            </form>
+        {% elif current_user.role in manager_roles and item.status == "Available" %}
+            <form method="post" action="{{ url_for('equipment.checkout', item_id=item.id) }}" class="form-grid">
+                <input type="hidden" name="next" value="{{ url_for('equipment.scan_actions', item_id=item.id) }}">
+                <label>
+                    Crew or staff member
+                    <select name="user_id" required>
+                        <option value="">Select a user</option>
+                        {% for user in crew_users %}
+                            <option value="{{ user.id }}">{{ user.name }} - {{ user.role }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    Event
+                    <select name="event_id">
+                        <option value="">No event linked</option>
+                        {% for event in events %}
+                            <option value="{{ event.id }}">{{ event.name }} - {{ event.event_date.strftime("%d %b %Y") }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    Due date
+                    <input type="datetime-local" name="due_at">
+                </label>
+                <button class="button button-primary button-large" type="submit">Check out item</button>
+            </form>
+        {% else %}
+            <p class="empty-state">This item cannot be checked out from the quick workflow while its status is `{{ item.status }}`.</p>
+        {% endif %}
+
+        {% if current_user.role != "Viewer" %}
+            <form method="post" action="{{ url_for('equipment.maintenance_request', item_id=item.id) }}" class="form-grid scan-inline-form">
+                <input type="hidden" name="next" value="{{ url_for('equipment.scan_actions', item_id=item.id) }}">
+                <label>
+                    Report a problem
+                    <textarea name="description" rows="4" placeholder="Example: XLR input is loose and the handle is cracked." required></textarea>
+                </label>
+                <button class="button button-secondary" type="submit">Send maintenance request</button>
+            </form>
+        {% endif %}
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Latest maintenance notes</h2>
+    </div>
+    {% if maintenance_reports %}
+        <div class="dashboard-list">
+            {% for report in maintenance_reports %}
+                <article class="dashboard-item">
+                    <strong>{{ report.status }}</strong>
+                    <div class="dashboard-meta">
+                        <span>{{ report.reporter.name }}</span>
+                        <span>{{ report.created_at|app_dt }}</span>
+                    </div>
+                    <p class="support-copy">{{ report.description }}</p>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No maintenance notes have been logged for this item yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

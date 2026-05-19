@@ -23,16 +23,9 @@
     <section class="panel scanner-banner">
         <p class="eyebrow">Scanned in StageTrack</p>
         <h2>Equipment located and ready to manage</h2>
-        <p class="support-copy">This item was opened from the in-app scanner, so the most useful actions are ready below for fast phone use.</p>
+        <p class="support-copy">This item was opened from the in-app scanner. Use the quick mobile action screen if you want the fastest workflow.</p>
         <div class="scanner-action-strip">
-            {% if current_user.role in manager_roles and active_checkout %}
-                <a class="button button-primary" href="#checkout-status">Return item</a>
-            {% elif current_user.role in manager_roles and item.status == "Available" %}
-                <a class="button button-primary" href="#checkout-status">Check out item</a>
-            {% endif %}
-            {% if current_user.role != "Viewer" %}
-                <a class="button button-secondary" href="#maintenance-request">Report issue</a>
-            {% endif %}
+            <a class="button button-primary" href="{{ url_for('equipment.scan_actions', item_id=item.id) }}">Open quick actions</a>
             <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Scan next item</a>
         </div>
     </section>
@@ -233,6 +226,28 @@
             <p class="empty-state">No maintenance requests have been logged for this item yet.</p>
         {% endif %}
     </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Recent scans</h2>
+    </div>
+    {% if recent_scans %}
+        <div class="dashboard-list">
+            {% for scan in recent_scans %}
+                <article class="dashboard-item">
+                    <strong>{{ scan.destination.replace('_', ' ')|title }}</strong>
+                    <div class="dashboard-meta">
+                        <span>{{ scan.source.replace('_', ' ')|title }}</span>
+                        <span>{{ scan.user.name if scan.user else "Public visitor" }}</span>
+                        <span>{{ scan.scanned_at|app_dt }}</span>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No scan history has been logged for this item yet.</p>
+    {% endif %}
 </section>
 
 <section class="panel">
