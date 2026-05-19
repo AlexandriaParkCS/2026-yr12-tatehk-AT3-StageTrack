@@ -30,3 +30,9 @@ class Config:
     PREFERRED_URL_SCHEME = os.getenv("PREFERRED_URL_SCHEME", "http")
     MAX_CONTENT_LENGTH = 8 * 1024 * 1024
     ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+    OBJECT_STORAGE_PROVIDER = os.getenv("OBJECT_STORAGE_PROVIDER", "").strip().lower()
+    OBJECT_STORAGE_BUCKET = os.getenv("OBJECT_STORAGE_BUCKET", "").strip()
+    OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "").strip() or "auto"
+    OBJECT_STORAGE_ENDPOINT = os.getenv("OBJECT_STORAGE_ENDPOINT", "").strip().rstrip("/")
+    OBJECT_STORAGE_ACCESS_KEY = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "").strip()
+    OBJECT_STORAGE_SECRET_KEY = os.getenv("OBJECT_STORAGE_SECRET_KEY", "").strip()

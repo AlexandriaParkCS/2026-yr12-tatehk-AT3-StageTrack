@@ -174,6 +174,11 @@ def system_settings():
         settings.due_soon_hours = request.form.get("due_soon_hours", type=int) or 24
         settings.long_overdue_days = request.form.get("long_overdue_days", type=int) or 7
         settings.auto_hide_removed_items = request.form.get("auto_hide_removed_items") == "on"
+        settings.scan_summary_window_hours = request.form.get("scan_summary_window_hours", type=int) or 24
+        settings.public_qr_show_description = request.form.get("public_qr_show_description") == "on"
+        settings.public_qr_show_location = request.form.get("public_qr_show_location") == "on"
+        settings.public_qr_show_checkout_state = request.form.get("public_qr_show_checkout_state") == "on"
+        settings.public_qr_show_maintenance = request.form.get("public_qr_show_maintenance") == "on"
 
         settings.event_venues = request.form.get("event_venues", "").strip()
         settings.event_crew_roles = request.form.get("event_crew_roles", "").strip()

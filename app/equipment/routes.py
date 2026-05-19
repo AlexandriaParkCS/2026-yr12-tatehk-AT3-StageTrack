@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+from io import BytesIO
 from uuid import uuid4
 
 import qrcode
@@ -10,6 +11,7 @@ from werkzeug.utils import secure_filename
 from ..auth.routes import current_user, login_required, role_required
 from ..email_service import send_equipment_checkout_email, send_equipment_return_email, send_maintenance_request_email
 from ..extensions import db
+from ..object_storage import delete_qr as delete_stored_qr, download_qr, local_qr_path, qr_exists as stored_qr_exists, storage_enabled, upload_qr
 from ..pdf_service import build_kit_checkout_pdf, build_maintenance_pdf
 from ..models import ConsumableAdjustment, ConsumableItem, DamageReport, Equipment, EquipmentCheckout, EquipmentKit, EquipmentKitItem, Event, ScanLog, StorageLocation, User
 from ..system_settings_service import (
@@ -67,14 +69,24 @@ def generate_qr_code(item):
         return
 
     filename = f"equipment-{item.id}.png"
-    destination = qr_code_dir() / filename
     qr_image = qrcode.make(build_qr_target_url(item.id))
-    qr_image.save(destination)
+    buffer = BytesIO()
+    qr_image.save(buffer, format="PNG")
+    payload = buffer.getvalue()
+    if storage_enabled():
+        upload_qr(filename, payload)
+    else:
+        destination = qr_code_dir() / filename
+        destination.write_bytes(payload)
     item.qr_code = filename
 
 
 def qr_code_exists(filename):
-    return bool(filename and (qr_code_dir() / filename).exists())
+    if not filename:
+        return False
+    if storage_enabled():
+        return stored_qr_exists(filename)
+    return (qr_code_dir() / filename).exists()
 
 
 def ensure_item_qr_code(item):
@@ -99,9 +111,15 @@ def generate_kit_qr_code(kit):
         return None
 
     filename = kit_qr_filename(kit.id)
-    destination = qr_code_dir() / filename
     qr_image = qrcode.make(build_kit_qr_target_url(kit.id))
-    qr_image.save(destination)
+    buffer = BytesIO()
+    qr_image.save(buffer, format="PNG")
+    payload = buffer.getvalue()
+    if storage_enabled():
+        upload_qr(filename, payload)
+    else:
+        destination = qr_code_dir() / filename
+        destination.write_bytes(payload)
     return filename
 
 
@@ -116,9 +134,22 @@ def delete_qr_code(qr_code_path):
     if not qr_code_path:
         return
 
+    if storage_enabled():
+        delete_stored_qr(qr_code_path)
+        return
+
     target = qr_code_dir() / qr_code_path
     if target.exists() and target.is_file():
         target.unlink()
+
+
+def qr_file_response(filename):
+    if storage_enabled():
+        payload = download_qr(filename)
+        if payload:
+            return send_file(payload, mimetype="image/png", max_age=300)
+    target = local_qr_path(filename)
+    return send_file(target, mimetype="image/png", max_age=300)
 
 
 def save_image(file_storage):
@@ -173,6 +204,21 @@ def redirect_target(default_endpoint, **values):
     if next_url.startswith("/"):
         return next_url
     return url_for(default_endpoint, **values)
+
+
+def scan_summary(logs):
+    equipment_ids = {log.equipment_id for log in logs if log.equipment_id}
+    kit_ids = {log.kit_id for log in logs if log.kit_id}
+    public_scans = [log for log in logs if log.source == "public_camera"]
+    app_scans = [log for log in logs if log.source == "app_scanner"]
+    return {
+        "total": len(logs),
+        "public": len(public_scans),
+        "app": len(app_scans),
+        "manual": sum(1 for log in logs if log.source == "manual_entry"),
+        "equipment": len(equipment_ids),
+        "kits": len(kit_ids),
+    }
 
 
 def display_status(item, now=None):
@@ -279,6 +325,18 @@ def index():
     elif status_filter in configured_equipment_statuses():
         equipment_items = [item for item in equipment_items if item.status == status_filter]
 
+    last_scan_map = {}
+    item_ids = [item.id for item in equipment_items]
+    if item_ids:
+        recent_logs = (
+            ScanLog.query.filter(ScanLog.equipment_id.in_(item_ids))
+            .order_by(ScanLog.scanned_at.desc())
+            .all()
+        )
+        for log in recent_logs:
+            if log.equipment_id not in last_scan_map:
+                last_scan_map[log.equipment_id] = log
+
     return render_template(
         "equipment/index.html",
         equipment_items=equipment_items,
@@ -290,6 +348,7 @@ def index():
         current_status=status_filter,
         include_removed=include_removed,
         now=local_now,
+        last_scan_map=last_scan_map,
     )
 
 
@@ -321,6 +380,60 @@ def qr_labels():
 def kits():
     kit_list = EquipmentKit.query.order_by(EquipmentKit.name.asc()).all()
     return render_template("equipment/kits/index.html", kits=kit_list, active_checkout_for_item=active_checkout_for_item)
+
+
+@equipment_bp.route("/scan-history")
+@role_required("Admin", "Teacher", "Stage Manager")
+def scan_history():
+    settings = get_system_settings()
+    search = request.args.get("q", "").strip().lower()
+    source = request.args.get("source", "").strip()
+    target_type = request.args.get("target_type", "").strip()
+    user_filter = request.args.get("user_id", type=int)
+
+    logs = ScanLog.query.order_by(ScanLog.scanned_at.desc()).all()
+
+    if source in {"public_camera", "app_scanner", "manual_entry"}:
+        logs = [log for log in logs if log.source == source]
+    if target_type == "equipment":
+        logs = [log for log in logs if log.equipment_id]
+    elif target_type == "kit":
+        logs = [log for log in logs if log.kit_id]
+    if user_filter:
+        logs = [log for log in logs if log.user_id == user_filter]
+    if search:
+        logs = [
+            log
+            for log in logs
+            if search in (
+                " ".join(
+                    [
+                        log.equipment.name if log.equipment else "",
+                        log.kit.name if log.kit else "",
+                        log.user.name if log.user else "",
+                        log.destination,
+                        log.source,
+                    ]
+                ).lower()
+            )
+        ]
+
+    summary_window_hours = max(1, settings.scan_summary_window_hours)
+    recent_cutoff = datetime.utcnow().timestamp() - (summary_window_hours * 3600)
+    recent_logs = [log for log in logs if log.scanned_at.timestamp() >= recent_cutoff]
+    users = User.query.filter_by(is_active=True).order_by(User.name.asc()).all()
+
+    return render_template(
+        "equipment/scan_history.html",
+        logs=logs[:150],
+        current_search=search,
+        current_source=source,
+        current_target_type=target_type,
+        current_user_id=user_filter,
+        users=users,
+        summary=scan_summary(recent_logs),
+        summary_window_hours=summary_window_hours,
+    )
 
 
 @equipment_bp.route("/kits/new", methods=["GET", "POST"])
@@ -375,6 +488,13 @@ def kit_detail(kit_id):
         scanned=request.args.get("scanner") == "1",
         recent_scans=recent_scans,
     )
+
+
+@equipment_bp.route("/kits/<int:kit_id>/qr-image")
+def kit_qr_image(kit_id):
+    kit = EquipmentKit.query.get_or_404(kit_id)
+    filename = ensure_kit_qr_code(kit)
+    return qr_file_response(filename)
 
 
 @equipment_bp.route("/kits/<int:kit_id>/public")
@@ -771,6 +891,14 @@ def scanner():
     return render_template("equipment/scanner.html")
 
 
+@equipment_bp.route("/<int:item_id>/qr-image")
+def item_qr_image(item_id):
+    item = Equipment.query.get_or_404(item_id)
+    if ensure_item_qr_code(item):
+        db.session.commit()
+    return qr_file_response(item.qr_code)
+
+
 @equipment_bp.route("/qr/<int:item_id>")
 def qr_entry(item_id):
     item = Equipment.query.get_or_404(item_id)
@@ -785,6 +913,7 @@ def qr_entry(item_id):
 @equipment_bp.route("/public/<int:item_id>")
 def public_detail(item_id):
     item = Equipment.query.get_or_404(item_id)
+    settings = get_system_settings()
     if ensure_item_qr_code(item):
         db.session.commit()
     active_checkout = active_checkout_for_item(item.id)
@@ -796,6 +925,7 @@ def public_detail(item_id):
         public_qr_target=build_qr_target_url(item.id),
         now=datetime.now(),
         recent_reports=recent_reports,
+        settings=settings,
     )
 
 

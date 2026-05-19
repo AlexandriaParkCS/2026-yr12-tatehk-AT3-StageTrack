@@ -38,7 +38,7 @@
 
     <section class="panel">
         <div class="qr-card">
-            <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ qr_filename) }}" alt="QR code for {{ kit.name }}">
+            <img class="qr-image" src="{{ url_for('equipment.kit_qr_image', kit_id=kit.id) }}" alt="QR code for {{ kit.name }}">
         </div>
         <p class="support-copy">Scan this QR code with the StageTrack app to open the full kit directly.</p>
     </section>

@@ -1164,6 +1164,10 @@ tbody tr:hover {
     margin-top: 1rem;
 }
 
+.dashboard-summary-row {
+    margin-bottom: 1rem;
+}
+
 @media print {
     .site-header,
     .page-header .actions,

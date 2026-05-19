@@ -93,7 +93,7 @@
         </div>
         <p class="support-copy">The same QR code works two ways: a normal camera opens the StageTrack site, and the in-app scanner brings you straight back to this item.</p>
         <div class="qr-card">
-            <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ item.qr_code) }}" alt="QR code for {{ item.name }}">
+            <img class="qr-image" src="{{ url_for('equipment.item_qr_image', item_id=item.id) }}" alt="QR code for {{ item.name }}">
         </div>
         <div class="dashboard-list">
             <article class="dashboard-item">

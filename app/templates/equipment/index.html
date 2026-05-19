@@ -15,6 +15,7 @@
 <section class="actions page-actions">
     <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Open QR scanner</a>
     {% if current_user.role in manager_roles %}
+        <a class="button button-secondary" href="{{ url_for('equipment.scan_history') }}">Scan history</a>
         <a class="button button-secondary" href="{{ url_for('equipment.consumables') }}">Consumables</a>
         <a class="button button-secondary" href="{{ url_for('equipment.kits') }}">Equipment kits</a>
         <a class="button button-secondary" href="{{ url_for('equipment.qr_labels', q=current_search, category=current_category, status=current_status, include_removed='on' if include_removed else '') }}">Bulk QR labels</a>
@@ -53,6 +54,7 @@
                     <th>Category</th>
                     <th>Status</th>
                     <th>Location</th>
+                    <th>Last scanned</th>
                     {% if current_user.role in manager_roles %}
                         <th>Actions</th>
                     {% endif %}
@@ -72,6 +74,17 @@
                         <td data-label="Category">{{ item.category }}</td>
                         <td data-label="Status"><span class="status-pill {% if display_status(item, now) == 'Overdue' %}status-pill-danger{% endif %}">{{ display_status(item, now) }}</span></td>
                         <td data-label="Location">{{ item.location or "Not set" }}</td>
+                        <td data-label="Last scanned">
+                            {% set last_scan = last_scan_map.get(item.id) %}
+                            {% if last_scan %}
+                                <div class="dashboard-meta">
+                                    <span>{{ last_scan.scanned_at|app_dt }}</span>
+                                    <span>{{ last_scan.source.replace('_', ' ')|title }}</span>
+                                </div>
+                            {% else %}
+                                Never scanned
+                            {% endif %}
+                        </td>
                         {% if current_user.role in manager_roles %}
                             <td data-label="Actions" class="actions">
                                 <a href="{{ url_for('equipment.detail', item_id=item.id) }}">View</a>
@@ -95,7 +108,7 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="6" class="empty-state">No equipment found.</td>
+                        <td colspan="{{ 7 if current_user.role in manager_roles else 6 }}" class="empty-state">No equipment found.</td>
                     </tr>
                 {% endfor %}
             </tbody>

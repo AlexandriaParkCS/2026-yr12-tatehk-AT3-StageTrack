@@ -6,3 +6,4 @@ psycopg[binary]==3.2.9
 qrcode==8.0
 Pillow==11.1.0
 reportlab==4.2.5
+boto3==1.39.4

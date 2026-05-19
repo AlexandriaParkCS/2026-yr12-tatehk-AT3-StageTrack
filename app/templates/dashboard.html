@@ -225,8 +225,19 @@
             <section class="panel">
                 <div class="panel-header">
                     <h2>Recent scans</h2>
-                    <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Open scanner</a>
+                    <div class="actions">
+                        <a class="button button-secondary" href="{{ url_for('equipment.scan_history') }}">Full history</a>
+                        <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Open scanner</a>
+                    </div>
                 </div>
+                {% if stats.scan_summary %}
+                    <div class="dashboard-meta dashboard-summary-row">
+                        <span>{{ stats.scan_summary.total }} scans in last {{ stats.scan_summary.window_hours }}h</span>
+                        <span>{{ stats.scan_summary.public }} public</span>
+                        <span>{{ stats.scan_summary.app }} app</span>
+                        <span>{{ stats.scan_summary.manual }} manual</span>
+                    </div>
+                {% endif %}
                 {% if stats.recent_scans %}
                     <div class="dashboard-list">
                         {% for scan in stats.recent_scans %}

@@ -87,7 +87,7 @@
                     <span><a href="{{ url_for('equipment.kit_labels') }}">Print kit labels</a></span>
                 </div>
                 <div class="qr-card">
-                    <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ qr_filename) }}" alt="QR code for {{ kit.name }}">
+                    <img class="qr-image" src="{{ url_for('equipment.kit_qr_image', kit_id=kit.id) }}" alt="QR code for {{ kit.name }}">
                 </div>
                 <p class="support-copy">{{ public_qr_target }}</p>
             </article>

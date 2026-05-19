@@ -39,25 +39,31 @@
                     </span>
                 </div>
             </article>
-            <article class="dashboard-item">
-                <strong>Location</strong>
-                <div class="dashboard-meta"><span>{{ item.location or "Not listed" }}</span></div>
-            </article>
-            <article class="dashboard-item">
-                <strong>Description</strong>
-                <div class="dashboard-meta"><span>{{ item.description or "No public description has been added yet." }}</span></div>
-            </article>
-            <article class="dashboard-item">
-                <strong>Current lend state</strong>
-                <div class="dashboard-meta">
-                    {% if active_checkout %}
-                        <span>Currently assigned through StageTrack</span>
-                        <span>{% if active_checkout.due_at %}Due {{ active_checkout.due_at|app_dt }}{% else %}No due date listed{% endif %}</span>
-                    {% else %}
-                        <span>Not currently checked out</span>
-                    {% endif %}
-                </div>
-            </article>
+            {% if settings.public_qr_show_location %}
+                <article class="dashboard-item">
+                    <strong>Location</strong>
+                    <div class="dashboard-meta"><span>{{ item.location or "Not listed" }}</span></div>
+                </article>
+            {% endif %}
+            {% if settings.public_qr_show_description %}
+                <article class="dashboard-item">
+                    <strong>Description</strong>
+                    <div class="dashboard-meta"><span>{{ item.description or "No public description has been added yet." }}</span></div>
+                </article>
+            {% endif %}
+            {% if settings.public_qr_show_checkout_state %}
+                <article class="dashboard-item">
+                    <strong>Current lend state</strong>
+                    <div class="dashboard-meta">
+                        {% if active_checkout %}
+                            <span>Currently assigned through StageTrack</span>
+                            <span>{% if active_checkout.due_at %}Due {{ active_checkout.due_at|app_dt }}{% else %}No due date listed{% endif %}</span>
+                        {% else %}
+                            <span>Not currently checked out</span>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endif %}
         </div>
     </section>
 </section>
@@ -76,25 +82,27 @@
         </div>
     </section>
 
-    <section class="panel">
-        <div class="panel-header">
-            <h2>Recent maintenance activity</h2>
-        </div>
-        {% if recent_reports %}
-            <div class="dashboard-list">
-                {% for report in recent_reports %}
-                    <article class="dashboard-item">
-                        <strong>{{ report.status }}</strong>
-                        <div class="dashboard-meta">
-                            <span>{{ report.created_at|app_dt }}</span>
-                        </div>
-                        <p class="support-copy">{{ report.description }}</p>
-                    </article>
-                {% endfor %}
+    {% if settings.public_qr_show_maintenance %}
+        <section class="panel">
+            <div class="panel-header">
+                <h2>Recent maintenance activity</h2>
             </div>
-        {% else %}
-            <p class="empty-state">No maintenance history is visible for this item right now.</p>
-        {% endif %}
-    </section>
+            {% if recent_reports %}
+                <div class="dashboard-list">
+                    {% for report in recent_reports %}
+                        <article class="dashboard-item">
+                            <strong>{{ report.status }}</strong>
+                            <div class="dashboard-meta">
+                                <span>{{ report.created_at|app_dt }}</span>
+                            </div>
+                            <p class="support-copy">{{ report.description }}</p>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state">No maintenance history is visible for this item right now.</p>
+            {% endif %}
+        </section>
+    {% endif %}
 </section>
 {% endblock %}

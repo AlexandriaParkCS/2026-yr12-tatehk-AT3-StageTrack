@@ -263,6 +263,11 @@ class SystemSettings(db.Model):
     due_soon_hours = db.Column(db.Integer, nullable=False, default=24)
     long_overdue_days = db.Column(db.Integer, nullable=False, default=7)
     auto_hide_removed_items = db.Column(db.Boolean, nullable=False, default=True)
+    scan_summary_window_hours = db.Column(db.Integer, nullable=False, default=24)
+    public_qr_show_description = db.Column(db.Boolean, nullable=False, default=True)
+    public_qr_show_location = db.Column(db.Boolean, nullable=False, default=True)
+    public_qr_show_checkout_state = db.Column(db.Boolean, nullable=False, default=True)
+    public_qr_show_maintenance = db.Column(db.Boolean, nullable=False, default=True)
 
     event_venues = db.Column(db.Text, nullable=False, default="")
     event_crew_roles = db.Column(db.Text, nullable=False, default="")

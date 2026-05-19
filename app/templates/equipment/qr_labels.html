@@ -16,7 +16,7 @@
 <section class="qr-label-grid">
     {% for item in equipment_items %}
         <article class="panel qr-label-card">
-            <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ item.qr_code) }}" alt="QR code for {{ item.name }}">
+            <img class="qr-image" src="{{ url_for('equipment.item_qr_image', item_id=item.id) }}" alt="QR code for {{ item.name }}">
             <strong>{{ item.name }}</strong>
             <div class="dashboard-meta">
                 <span>{{ item.category }}</span>

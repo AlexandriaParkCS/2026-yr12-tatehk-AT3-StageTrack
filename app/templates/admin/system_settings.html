@@ -39,6 +39,15 @@
             <label>Due soon alert threshold (hours)<input type="number" name="due_soon_hours" value="{{ settings.due_soon_hours }}" min="1"></label>
             <label>Long overdue threshold (days)<input type="number" name="long_overdue_days" value="{{ settings.long_overdue_days }}" min="1"></label>
             <label class="checkbox-row"><input type="checkbox" name="auto_hide_removed_items" {% if settings.auto_hide_removed_items %}checked{% endif %}><span>Auto-hide removed items</span></label>
+            <label>Scan summary window (hours)<input type="number" name="scan_summary_window_hours" value="{{ settings.scan_summary_window_hours }}" min="1"></label>
+        </div>
+
+        <div class="panel-header"><h2>Public QR page</h2></div>
+        <div class="two-column form-grid">
+            <label class="checkbox-row"><input type="checkbox" name="public_qr_show_description" {% if settings.public_qr_show_description %}checked{% endif %}><span>Show description on public QR pages</span></label>
+            <label class="checkbox-row"><input type="checkbox" name="public_qr_show_location" {% if settings.public_qr_show_location %}checked{% endif %}><span>Show location on public QR pages</span></label>
+            <label class="checkbox-row"><input type="checkbox" name="public_qr_show_checkout_state" {% if settings.public_qr_show_checkout_state %}checked{% endif %}><span>Show checkout state on public QR pages</span></label>
+            <label class="checkbox-row"><input type="checkbox" name="public_qr_show_maintenance" {% if settings.public_qr_show_maintenance %}checked{% endif %}><span>Show maintenance history on public QR pages</span></label>
         </div>
 
         <div class="panel-header"><h2>Events</h2></div>

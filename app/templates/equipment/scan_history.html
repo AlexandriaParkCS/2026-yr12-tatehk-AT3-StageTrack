@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Scan History{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">QR analytics</p>
+        <h1>Scan history</h1>
+        <p>Review scan activity across public QR visits and in-app scans, then filter down to the equipment, kit, or user you need.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('equipment.scanner') }}">Open scanner</a>
+        <a class="button button-primary" href="{{ url_for('equipment.index') }}">Back to inventory</a>
+    </div>
+</section>
+
+<section class="stat-grid">
+    <article class="stat-card">
+        <div class="stat-label"><span>Recent scans</span><span class="stat-icon">SC</span></div>
+        <strong>{{ summary.total }}</strong>
+        <span class="support-copy">Last {{ summary_window_hours }} hours</span>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label"><span>Public scans</span><span class="stat-icon">PB</span></div>
+        <strong>{{ summary.public }}</strong>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label"><span>App scans</span><span class="stat-icon">AP</span></div>
+        <strong>{{ summary.app }}</strong>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label"><span>Items touched</span><span class="stat-icon">EQ</span></div>
+        <strong>{{ summary.equipment }}</strong>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label"><span>Kits touched</span><span class="stat-icon">KT</span></div>
+        <strong>{{ summary.kits }}</strong>
+    </article>
+</section>
+
+<section class="panel">
+    <form method="get" class="filter-bar">
+        <input type="search" name="q" placeholder="Search item, kit, user, source, or destination" value="{{ current_search }}">
+        <select name="source">
+            <option value="">All sources</option>
+            <option value="public_camera" {% if current_source == "public_camera" %}selected{% endif %}>Public camera</option>
+            <option value="app_scanner" {% if current_source == "app_scanner" %}selected{% endif %}>App scanner</option>
+            <option value="manual_entry" {% if current_source == "manual_entry" %}selected{% endif %}>Manual entry</option>
+        </select>
+        <select name="target_type">
+            <option value="">Equipment and kits</option>
+            <option value="equipment" {% if current_target_type == "equipment" %}selected{% endif %}>Equipment only</option>
+            <option value="kit" {% if current_target_type == "kit" %}selected{% endif %}>Kits only</option>
+        </select>
+        <select name="user_id">
+            <option value="">All users</option>
+            {% for user in users %}
+                <option value="{{ user.id }}" {% if current_user_id == user.id %}selected{% endif %}>{{ user.name }}</option>
+            {% endfor %}
+        </select>
+        <button class="button button-primary" type="submit">Apply filters</button>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>When</th>
+                    <th>Target</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Destination</th>
+                    <th>Who</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                    <tr>
+                        <td data-label="When">{{ log.scanned_at|app_dt }}</td>
+                        <td data-label="Target">
+                            {% if log.equipment %}
+                                <a href="{{ url_for('equipment.detail', item_id=log.equipment.id) }}"><strong>{{ log.equipment.name }}</strong></a>
+                            {% elif log.kit %}
+                                <a href="{{ url_for('equipment.kit_detail', kit_id=log.kit.id) }}"><strong>{{ log.kit.name }}</strong></a>
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </td>
+                        <td data-label="Type">{{ "Equipment" if log.equipment_id else "Kit" if log.kit_id else "Unknown" }}</td>
+                        <td data-label="Source">{{ log.source.replace('_', ' ')|title }}</td>
+                        <td data-label="Destination">{{ log.destination.replace('_', ' ')|title }}</td>
+                        <td data-label="Who">{{ log.user.name if log.user else "Public visitor" }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty-state">No scan records match the current filters.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

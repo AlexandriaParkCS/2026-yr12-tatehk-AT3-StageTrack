@@ -224,10 +224,21 @@ def create_app(config_class=Config):
                 Task.created_at.desc(),
             ).limit(5).all(),
             "recent_scans": [],
+            "scan_summary": None,
         }
 
         if user.role in {"Admin", "Teacher", "Stage Manager"}:
-            stats["recent_scans"] = ScanLog.query.order_by(ScanLog.scanned_at.desc()).limit(6).all()
+            recent_scan_logs = ScanLog.query.order_by(ScanLog.scanned_at.desc()).limit(6).all()
+            summary_cutoff = datetime.utcnow() - timedelta(hours=max(1, system_settings.scan_summary_window_hours))
+            summary_logs = ScanLog.query.filter(ScanLog.scanned_at >= summary_cutoff).all()
+            stats["recent_scans"] = recent_scan_logs
+            stats["scan_summary"] = {
+                "window_hours": max(1, system_settings.scan_summary_window_hours),
+                "total": len(summary_logs),
+                "public": sum(1 for log in summary_logs if log.source == "public_camera"),
+                "app": sum(1 for log in summary_logs if log.source == "app_scanner"),
+                "manual": sum(1 for log in summary_logs if log.source == "manual_entry"),
+            }
         return render_template("dashboard.html", stats=stats)
 
     @app.cli.command("init-db")
@@ -320,6 +331,20 @@ def ensure_schema_updates():
         if "crew_email" not in assignment_columns:
             db.session.execute(text("ALTER TABLE event_crew_assignment ADD COLUMN crew_email VARCHAR(255) NOT NULL DEFAULT ''"))
             db.session.commit()
+
+    if "system_settings" in table_names:
+        system_columns = {column["name"] for column in inspector.get_columns("system_settings")}
+        if "scan_summary_window_hours" not in system_columns:
+            db.session.execute(text("ALTER TABLE system_settings ADD COLUMN scan_summary_window_hours INTEGER NOT NULL DEFAULT 24"))
+        if "public_qr_show_description" not in system_columns:
+            db.session.execute(text("ALTER TABLE system_settings ADD COLUMN public_qr_show_description BOOLEAN NOT NULL DEFAULT 1"))
+        if "public_qr_show_location" not in system_columns:
+            db.session.execute(text("ALTER TABLE system_settings ADD COLUMN public_qr_show_location BOOLEAN NOT NULL DEFAULT 1"))
+        if "public_qr_show_checkout_state" not in system_columns:
+            db.session.execute(text("ALTER TABLE system_settings ADD COLUMN public_qr_show_checkout_state BOOLEAN NOT NULL DEFAULT 1"))
+        if "public_qr_show_maintenance" not in system_columns:
+            db.session.execute(text("ALTER TABLE system_settings ADD COLUMN public_qr_show_maintenance BOOLEAN NOT NULL DEFAULT 1"))
+        db.session.commit()
 
     if "storage_location" not in table_names:
         StorageLocation.__table__.create(db.engine)

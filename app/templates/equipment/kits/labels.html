@@ -16,7 +16,7 @@
 <section class="qr-label-grid">
     {% for kit in kits %}
         <article class="panel qr-label-card">
-            <img class="qr-image" src="{{ url_for('static', filename='qr_codes/' ~ qr_filenames[kit.id]) }}" alt="QR code for {{ kit.name }}">
+            <img class="qr-image" src="{{ url_for('equipment.kit_qr_image', kit_id=kit.id) }}" alt="QR code for {{ kit.name }}">
             <strong>{{ kit.name }}</strong>
             <div class="dashboard-meta">
                 <span>{{ kit.items|length }} item{{ "" if kit.items|length == 1 else "s" }}</span>

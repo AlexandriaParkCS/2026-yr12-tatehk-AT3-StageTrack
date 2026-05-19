@@ -39,7 +39,8 @@ This repo now includes a [render.yaml](C:/Users/think/Documents/GitHub/2026-yr12
 ### Important production notes
 
 - Do not use SQLite on Render for real app data. Render's filesystem is ephemeral, so this app is configured to use Postgres in production.
-- Uploaded images and generated QR files are still stored on the local filesystem right now, which also means they are ephemeral on Render until you move them to cloud storage or a persistent disk.
+- Uploaded equipment images are still stored on the local filesystem right now, so those are still ephemeral on Render until you move them to cloud storage or a persistent disk.
+- QR assets can now be stored in Cloudflare R2 through environment variables, which is the recommended production setup for StageTrack.
 
 ### Quick Render setup
 
@@ -49,8 +50,15 @@ This repo now includes a [render.yaml](C:/Users/think/Documents/GitHub/2026-yr12
    - A web service for the Flask app
    - A Postgres database
 4. Set the `SECRET_KEY` value when prompted.
-5. After the first deploy, open the site and create the first admin account.
-6. Go to Admin > Email Settings and enter your SMTP details.
+5. Add your Cloudflare R2 settings if you want production-safe QR storage:
+   - `OBJECT_STORAGE_PROVIDER` = `r2`
+   - `OBJECT_STORAGE_BUCKET` = your bucket name
+   - `OBJECT_STORAGE_REGION` = `auto`
+   - `OBJECT_STORAGE_ENDPOINT` = your account-level R2 S3 endpoint
+   - `OBJECT_STORAGE_ACCESS_KEY` = your R2 access key
+   - `OBJECT_STORAGE_SECRET_KEY` = your R2 secret key
+6. After the first deploy, open the site and create the first admin account.
+7. Go to Admin > Email Settings and enter your SMTP details.
 
 ### Manual service settings
 
@@ -64,6 +72,12 @@ If you prefer to create the service without the Blueprint:
   - `SECRET_KEY` = a long random secret
   - `PREFERRED_URL_SCHEME` = `https`
   - `SESSION_COOKIE_SECURE` = `true`
+  - `OBJECT_STORAGE_PROVIDER` = `r2`
+  - `OBJECT_STORAGE_BUCKET` = your R2 bucket name
+  - `OBJECT_STORAGE_REGION` = `auto`
+  - `OBJECT_STORAGE_ENDPOINT` = your R2 S3 endpoint
+  - `OBJECT_STORAGE_ACCESS_KEY` = your R2 access key
+  - `OBJECT_STORAGE_SECRET_KEY` = your R2 secret key
 
 ## Default workflow
 
