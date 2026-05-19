@@ -14,6 +14,7 @@ from ..email_service import (
 )
 from ..extensions import db
 from ..models import Equipment, PasswordResetToken, ScanLog, StorageLocation, User
+from ..object_storage import storage_status
 from ..site_service import get_site_settings
 from ..system_settings_service import get_system_settings, settings_role_options
 from . import admin_bp
@@ -220,6 +221,19 @@ def system_settings():
         return redirect(url_for("admin.system_settings"))
 
     return render_template("admin/system_settings.html", settings=settings, role_options=settings_role_options())
+
+
+@admin_bp.route("/settings/storage", methods=["GET", "POST"])
+@role_required("Admin")
+def storage_settings():
+    status = storage_status()
+    if request.method == "POST":
+        if status["ok"]:
+            flash("Cloudflare R2 connection succeeded.", "success")
+        else:
+            flash(f"Cloudflare R2 connection failed: {status['message']}", "error")
+        return redirect(url_for("admin.storage_settings"))
+    return render_template("admin/storage_settings.html", status=status)
 
 
 @admin_bp.route("/settings/locations/<int:location_id>/toggle", methods=["POST"])

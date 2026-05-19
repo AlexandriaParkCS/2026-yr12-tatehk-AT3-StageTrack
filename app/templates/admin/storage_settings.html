@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Storage Status{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Super admin</p>
+        <h1>Storage status</h1>
+        <p>Check whether StageTrack can reach Cloudflare R2 for QR asset storage on the live server.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('admin.users') }}">Back to admin</a>
+    </div>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Current configuration</h2>
+        </div>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Provider</strong>
+                <div class="dashboard-meta"><span>{{ status.provider }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Bucket</strong>
+                <div class="dashboard-meta"><span>{{ status.bucket or "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Endpoint</strong>
+                <div class="dashboard-meta"><span>{{ status.endpoint or "Not set" }}</span></div>
+            </article>
+            <article class="dashboard-item">
+                <strong>Connection result</strong>
+                <div class="dashboard-meta">
+                    <span class="status-pill {% if status.ok %}status-pill-success{% elif status.enabled %}status-pill-danger{% endif %}">
+                        {% if status.ok %}
+                            Connected
+                        {% elif status.enabled %}
+                            Failed
+                        {% else %}
+                            Local only
+                        {% endif %}
+                    </span>
+                </div>
+                <p class="support-copy">{{ status.message }}</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Run live test</h2>
+        </div>
+        <p class="support-copy">This checks whether the current Render environment can reach your configured R2 bucket with the saved environment variables.</p>
+        <form method="post" class="form-grid">
+            <div class="actions">
+                <button class="button button-primary" type="submit">Test Cloudflare R2 connection</button>
+            </div>
+        </form>
+        <p class="support-copy">If this fails, double-check the bucket name, endpoint, access key, secret key, and then redeploy Render.</p>
+    </section>
+</section>
+{% endblock %}
