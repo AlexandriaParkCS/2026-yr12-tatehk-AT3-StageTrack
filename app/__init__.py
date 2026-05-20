@@ -10,7 +10,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .admin import admin_bp
 from .auth import auth_bp
 from .config import Config
-from .email_service import send_enquiry_email, send_equipment_overdue_email
+from .email_service import send_enquiry_email, send_equipment_overdue_email, send_task_overdue_email
 from .equipment import equipment_bp
 from .events import events_bp
 from .extensions import db
@@ -73,6 +73,26 @@ def create_app(config_class=Config):
                 checkout.overdue_notified_at = datetime.utcnow()
 
         if overdue_checkouts:
+            db.session.commit()
+
+    @app.before_request
+    def send_pending_task_overdue_emails():
+        overdue_tasks = Task.query.filter(
+            Task.status != "Completed",
+            Task.due_time.is_not(None),
+            Task.overdue_notified_at.is_(None),
+            Task.due_time < datetime.now(),
+        ).all()
+
+        for task in overdue_tasks:
+            try:
+                sent = send_task_overdue_email(task)
+            except Exception:
+                sent = False
+            if sent:
+                task.overdue_notified_at = datetime.utcnow()
+
+        if overdue_tasks:
             db.session.commit()
 
     @app.route("/")
@@ -166,6 +186,8 @@ def create_app(config_class=Config):
             long_overdue_alerts = []
             repeat_damage_alerts = []
             event_end_alerts = []
+            manager_event_task_summary = []
+            crew_without_tasks = []
         else:
             active_checkouts = EquipmentCheckout.query.filter(EquipmentCheckout.return_time.is_(None)).all()
             due_soon_alerts = sorted(
@@ -198,6 +220,40 @@ def create_app(config_class=Config):
                 ],
                 key=lambda checkout: checkout.event.packdown_time or checkout.event.event_date,
             )[:5]
+            manager_event_task_summary = []
+            for event in Event.query.order_by(Event.event_date.asc()).all():
+                total_tasks = len(event.tasks)
+                incomplete_tasks = [task for task in event.tasks if task.status != "Completed"]
+                if total_tasks or incomplete_tasks:
+                    completion_rate = int(round(((total_tasks - len(incomplete_tasks)) / total_tasks) * 100)) if total_tasks else 0
+                    manager_event_task_summary.append(
+                        {
+                            "event": event,
+                            "total_tasks": total_tasks,
+                            "incomplete_count": len(incomplete_tasks),
+                            "overdue_count": sum(1 for task in incomplete_tasks if task.due_time and task.due_time < local_now),
+                            "completion_rate": completion_rate,
+                        }
+                    )
+            manager_event_task_summary = manager_event_task_summary[:5]
+            crew_without_tasks = []
+            for event in Event.query.order_by(Event.event_date.asc()).all():
+                assigned_ids = {task.assigned_to for task in event.tasks}
+                waiting_crew = [assignment for assignment in event.crew_assignments if assignment.user_id not in assigned_ids]
+                if waiting_crew:
+                    crew_without_tasks.append({"event": event, "crew": waiting_crew})
+            crew_without_tasks = crew_without_tasks[:5]
+
+        if user.role in {"Student Crew", "Viewer"}:
+            assignment_upcoming_events = (
+                EventCrewAssignment.query.join(Event)
+                .filter(EventCrewAssignment.user_id == user_id)
+                .order_by(Event.event_date.asc())
+                .limit(5)
+                .all()
+            )
+        else:
+            assignment_upcoming_events = []
 
         stats = {
             "equipment_total": Equipment.query.filter(Equipment.status != "Removed").count(),
@@ -206,7 +262,7 @@ def create_app(config_class=Config):
             "missing_items": Equipment.query.filter_by(status="Missing").count(),
             "broken_items": broken_items,
             "broken_snapshot": broken_snapshot,
-            "upcoming_events": upcoming_events_query.limit(5).all(),
+            "upcoming_events": assignment_upcoming_events if assignment_upcoming_events else upcoming_events_query.limit(5).all(),
             "open_tasks": Task.query.filter(Task.status != "Completed").count(),
             "overdue_items": overdue_query.count(),
             "overdue_checkouts": overdue_query.order_by(EquipmentCheckout.due_at.asc()).limit(5).all(),
@@ -225,6 +281,12 @@ def create_app(config_class=Config):
             ).limit(5).all(),
             "recent_scans": [],
             "scan_summary": None,
+            "due_soon_tasks": [],
+            "overdue_tasks": [],
+            "my_events": [],
+            "my_equipment": [],
+            "manager_event_task_summary": manager_event_task_summary,
+            "crew_without_tasks": crew_without_tasks,
         }
 
         if user.role in {"Admin", "Teacher", "Stage Manager"}:
@@ -239,6 +301,21 @@ def create_app(config_class=Config):
                 "app": sum(1 for log in summary_logs if log.source == "app_scanner"),
                 "manual": sum(1 for log in summary_logs if log.source == "manual_entry"),
             }
+        else:
+            user_tasks = Task.query.filter_by(assigned_to=user_id).order_by(Task.due_time.asc(), Task.created_at.desc()).all()
+            due_soon_limit = local_now + timedelta(hours=max(1, system_settings.due_soon_hours))
+            stats["due_soon_tasks"] = [
+                task for task in user_tasks
+                if task.status != "Completed" and task.due_time and local_now <= task.due_time <= due_soon_limit
+            ][:5]
+            stats["overdue_tasks"] = [
+                task for task in user_tasks
+                if task.status != "Completed" and task.due_time and task.due_time < local_now
+            ][:5]
+            stats["my_events"] = [
+                assignment for assignment in EventCrewAssignment.query.join(Event).filter(EventCrewAssignment.user_id == user_id).order_by(Event.event_date.asc()).all()
+            ][:5]
+            stats["my_equipment"] = EquipmentCheckout.query.filter_by(user_id=user_id, return_time=None).order_by(EquipmentCheckout.checkout_time.desc()).limit(5).all()
         return render_template("dashboard.html", stats=stats)
 
     @app.cli.command("init-db")
@@ -325,6 +402,12 @@ def ensure_schema_updates():
         if "overdue_notified_at" not in checkout_columns:
             db.session.execute(text("ALTER TABLE equipment_checkout ADD COLUMN overdue_notified_at DATETIME"))
         db.session.commit()
+
+    if "task" in table_names:
+        task_columns = {column["name"] for column in inspector.get_columns("task")}
+        if "overdue_notified_at" not in task_columns:
+            db.session.execute(text("ALTER TABLE task ADD COLUMN overdue_notified_at DATETIME"))
+            db.session.commit()
 
     if "event_crew_assignment" in table_names:
         assignment_columns = {column["name"] for column in inspector.get_columns("event_crew_assignment")}

@@ -172,3 +172,74 @@ if (crewForm) {
 
     syncCrewRows();
 }
+
+const taskBulkForm = document.querySelector("[data-task-bulk-form]");
+
+if (taskBulkForm) {
+    const taskList = taskBulkForm.querySelector("[data-task-list]");
+    const taskTemplate = taskBulkForm.querySelector("[data-task-row-template]");
+    const taskCountInput = taskBulkForm.querySelector("[data-task-count]");
+    const addTaskButton = taskBulkForm.querySelector("[data-add-task-row]");
+
+    const syncTaskRows = () => {
+        const rows = Array.from(taskList.querySelectorAll("[data-task-row]"));
+        rows.forEach((row, index) => {
+            const titleInput = row.querySelector("[data-task-title]");
+            const assigneeInput = row.querySelector("[data-task-assignee]");
+            const dueInput = row.querySelector("[data-task-due]");
+            const statusInput = row.querySelector("[data-task-status]");
+            const descriptionInput = row.querySelector("[data-task-description]");
+            const removeButton = row.querySelector("[data-remove-task-row]");
+
+            if (titleInput) {
+                titleInput.name = `title_${index}`;
+            }
+            if (assigneeInput) {
+                assigneeInput.name = `assigned_to_${index}`;
+            }
+            if (dueInput) {
+                dueInput.name = `due_time_${index}`;
+            }
+            if (statusInput) {
+                statusInput.name = `status_${index}`;
+            }
+            if (descriptionInput) {
+                descriptionInput.name = `description_${index}`;
+            }
+            if (removeButton) {
+                removeButton.hidden = rows.length === 1;
+            }
+        });
+        taskCountInput.value = rows.length;
+    };
+
+    const addTaskRow = () => {
+        const fragment = taskTemplate.content.cloneNode(true);
+        taskList.appendChild(fragment);
+        syncTaskRows();
+        const rows = taskList.querySelectorAll("[data-task-row]");
+        const newestRow = rows[rows.length - 1];
+        newestRow?.querySelector("[data-task-title]")?.focus();
+    };
+
+    addTaskButton?.addEventListener("click", () => {
+        addTaskRow();
+    });
+
+    taskList?.addEventListener("click", (event) => {
+        const removeButton = event.target.closest("[data-remove-task-row]");
+        if (!removeButton) {
+            return;
+        }
+
+        const row = removeButton.closest("[data-task-row]");
+        if (!row) {
+            return;
+        }
+
+        row.remove();
+        syncTaskRows();
+    });
+
+    syncTaskRows();
+}

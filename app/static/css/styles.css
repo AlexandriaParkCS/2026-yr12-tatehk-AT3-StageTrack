@@ -1087,6 +1087,10 @@ tbody tr:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.assignment-row-task {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .assignment-remove {
     justify-self: flex-start;
 }
@@ -1166,6 +1170,11 @@ tbody tr:hover {
 
 .dashboard-summary-row {
     margin-bottom: 1rem;
+}
+
+.event-task-board {
+    display: grid;
+    gap: 1rem;
 }
 
 @media print {

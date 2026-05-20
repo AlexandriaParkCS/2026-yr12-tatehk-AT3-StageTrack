@@ -13,7 +13,7 @@ from ..email_service import (
 )
 from ..extensions import db
 from ..pdf_service import build_event_equipment_pdf
-from ..models import Event, EventCrewAssignment, User
+from ..models import Event, EventCrewAssignment, Task, User
 from ..system_settings_service import event_crew_roles, event_venues, get_system_settings, role_meets_requirement
 from . import events_bp
 
@@ -147,6 +147,17 @@ def current_user_can_view_event(event):
     return any(assignment.user_id == user.id for assignment in event.crew_assignments)
 
 
+def task_health(task, now=None):
+    current_time = now or datetime.now()
+    if task.status == "Completed":
+        return "Completed"
+    if task.due_time and task.due_time < current_time:
+        return "Overdue"
+    if task.due_time and (task.due_time - current_time).total_seconds() <= 24 * 3600:
+        return "Due Soon"
+    return task.status
+
+
 @events_bp.route("/")
 @login_required
 def index():
@@ -167,7 +178,32 @@ def detail(event_id):
     if not current_user_can_view_event(event):
         flash("You do not have permission to view that event.", "error")
         return redirect(url_for("events.index"))
-    return render_template("events/detail.html", event=event)
+    now = datetime.now()
+    tasks = Task.query.filter_by(event_id=event.id).order_by(Task.due_time.asc(), Task.created_at.desc()).all()
+    total_tasks = len(tasks)
+    completed_tasks = [task for task in tasks if task.status == "Completed"]
+    incomplete_tasks = [task for task in tasks if task.status != "Completed"]
+    overdue_tasks = [task for task in incomplete_tasks if task.due_time and task.due_time < now]
+    completion_rate = int(round((len(completed_tasks) / total_tasks) * 100)) if total_tasks else 0
+    assigned_ids = {task.assigned_to for task in tasks}
+    crew_without_tasks = [assignment for assignment in event.crew_assignments if assignment.user_id not in assigned_ids]
+    event_task_users = [assignment.user for assignment in event.crew_assignments if assignment.user and assignment.user.is_active]
+    if not event_task_users:
+        event_task_users = User.query.filter_by(is_active=True).order_by(User.name.asc()).all()
+    return render_template(
+        "events/detail.html",
+        event=event,
+        tasks=tasks,
+        event_task_users=event_task_users,
+        total_tasks=total_tasks,
+        completed_tasks=completed_tasks,
+        incomplete_tasks=incomplete_tasks,
+        overdue_tasks=overdue_tasks,
+        completion_rate=completion_rate,
+        crew_without_tasks=crew_without_tasks,
+        now=now,
+        task_health=task_health,
+    )
 
 
 @events_bp.route("/<int:event_id>/equipment-sheet")

@@ -19,14 +19,28 @@
 </section>
 
 <section class="panel">
-    <form method="get" class="filter-bar">
+    <form method="get" class="filter-bar" data-auto-submit-filter>
+        <input type="search" name="q" placeholder="Search task, event, assignee, or notes" value="{{ current_search }}">
         <select name="status">
             <option value="">All statuses</option>
             {% for status in statuses %}
                 <option value="{{ status }}" {% if current_status == status %}selected{% endif %}>{{ status }}</option>
             {% endfor %}
         </select>
-        <button class="button button-secondary" type="submit">Filter</button>
+        <select name="event_id">
+            <option value="">All events</option>
+            {% for event in events %}
+                <option value="{{ event.id }}" {% if current_event_id == event.id %}selected{% endif %}>{{ event.name }}</option>
+            {% endfor %}
+        </select>
+        {% if is_manager %}
+            <select name="assigned_to">
+                <option value="">All crew</option>
+                {% for user in users %}
+                    <option value="{{ user.id }}" {% if current_assignee_id == user.id %}selected{% endif %}>{{ user.name }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
     </form>
 
     <div class="table-wrap">
@@ -54,10 +68,18 @@
                         {% if is_manager %}
                             <td data-label="Assigned to">{{ task.assignee.name }}</td>
                         {% endif %}
-                        <td data-label="Due">{{ task.due_time.strftime("%d %b %Y %I:%M %p") if task.due_time else "Not set" }}</td>
-                        <td data-label="Status"><span class="status-pill">{{ task.status }}</span></td>
+                        <td data-label="Due">
+                            {{ task.due_time.strftime("%d %b %Y %I:%M %p") if task.due_time else "Not set" }}
+                            {% if task.due_time and task.status != "Completed" and task.due_time < now %}
+                                <div><span class="status-pill status-pill-danger">Overdue</span></div>
+                            {% elif task.due_time and task.status != "Completed" and task_state(task, now) == "Due Soon" %}
+                                <div><span class="status-pill">Due Soon</span></div>
+                            {% endif %}
+                        </td>
+                        <td data-label="Status"><span class="status-pill {% if task_state(task, now) == 'Overdue' %}status-pill-danger{% endif %}">{{ task_state(task, now) }}</span></td>
                         <td data-label="Actions" class="actions">
                             <form method="post" action="{{ url_for('tasks.update_status', task_id=task.id) }}" class="inline-form">
+                                <input type="hidden" name="next" value="{{ url_for('tasks.index', q=current_search, status=current_status, event_id=current_event_id or '', assigned_to=current_assignee_id or '') }}">
                                 <select name="status" aria-label="Update status for {{ task.title }}">
                                     {% for status in statuses %}
                                         <option value="{{ status }}" {% if task.status == status %}selected{% endif %}>{{ status }}</option>

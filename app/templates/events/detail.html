@@ -55,6 +55,7 @@
                             <span>{{ assignment.crew_role }}</span>
                             <span>{{ assignment.crew_email }}</span>
                             <span>{{ assignment.user.role }}</span>
+                            <span>{{ event.tasks|selectattr('assigned_to', 'equalto', assignment.user_id)|list|length }} task{{ "" if event.tasks|selectattr('assigned_to', 'equalto', assignment.user_id)|list|length == 1 else "s" }}</span>
                         </div>
                     </article>
                 {% endfor %}
@@ -63,6 +64,166 @@
             <p class="empty-state">No crew linked yet.</p>
         {% endif %}
     </section>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Task progress</h2>
+            {% if current_user.role in manager_roles %}
+                <a class="button button-secondary" href="{{ url_for('tasks.index', event_id=event.id) }}">Open event tasks</a>
+            {% endif %}
+        </div>
+        <div class="dashboard-list">
+            <article class="dashboard-item">
+                <strong>Completion</strong>
+                <div class="dashboard-meta">
+                    <span>{{ completion_rate }}% complete</span>
+                    <span>{{ completed_tasks|length }} completed</span>
+                    <span>{{ incomplete_tasks|length }} still open</span>
+                    <span>{% if overdue_tasks %}{{ overdue_tasks|length }} overdue{% else %}No overdue tasks{% endif %}</span>
+                </div>
+            </article>
+            {% if crew_without_tasks %}
+                <article class="dashboard-item">
+                    <strong>Crew without tasks yet</strong>
+                    <div class="dashboard-meta">
+                        {% for assignment in crew_without_tasks %}
+                            <span>{{ assignment.user.name }} - {{ assignment.crew_role }}</span>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if current_user.role in manager_roles %}
+        <section class="panel">
+            <div class="panel-header">
+                <h2>Quick task planner</h2>
+            </div>
+            <p class="support-copy">Add multiple crew tasks for this event in one pass. This is designed for fast event setup planning.</p>
+            <form method="post" action="{{ url_for('tasks.bulk_create') }}" class="form-grid" data-task-bulk-form>
+                <input type="hidden" name="event_id" value="{{ event.id }}">
+                <input type="hidden" name="next" value="{{ url_for('events.detail', event_id=event.id) }}">
+                <input type="hidden" name="task_entry_count" value="1" data-task-count>
+                <div class="assignment-toolbar">
+                    <button class="button button-secondary" type="button" data-add-task-row>Add task row</button>
+                </div>
+                <div class="assignment-list" data-task-list>
+                    <article class="assignment-row assignment-row-task" data-task-row>
+                        <label>
+                            Task title
+                            <input type="text" name="title_0" placeholder="Example: Set up wireless mics" data-task-title>
+                        </label>
+                        <label>
+                            Assign to
+                            <select name="assigned_to_0" data-task-assignee>
+                                <option value="">Select crew member</option>
+                                {% for user in event_task_users %}
+                                    <option value="{{ user.id }}">{{ user.name }}{% set event_role = event.crew_assignments|selectattr('user_id', 'equalto', user.id)|list %}{% if event_role %} - {{ event_role[0].crew_role }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>
+                            Due time
+                            <input type="datetime-local" name="due_time_0" data-task-due>
+                        </label>
+                        <label>
+                            Status
+                            <select name="status_0" data-task-status>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </label>
+                        <label class="full-width">
+                            Notes
+                            <textarea name="description_0" rows="3" placeholder="Extra directions or checklist notes" data-task-description></textarea>
+                        </label>
+                        <button class="button button-secondary assignment-remove" type="button" data-remove-task-row hidden>Remove</button>
+                    </article>
+                </div>
+                <template data-task-row-template>
+                    <article class="assignment-row assignment-row-task" data-task-row>
+                        <label>
+                            Task title
+                            <input type="text" placeholder="Example: Run HDMI to projector" data-task-title>
+                        </label>
+                        <label>
+                            Assign to
+                            <select data-task-assignee>
+                                <option value="">Select crew member</option>
+                                {% for user in event_task_users %}
+                                    <option value="{{ user.id }}">{{ user.name }}{% set event_role = event.crew_assignments|selectattr('user_id', 'equalto', user.id)|list %}{% if event_role %} - {{ event_role[0].crew_role }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>
+                            Due time
+                            <input type="datetime-local" data-task-due>
+                        </label>
+                        <label>
+                            Status
+                            <select data-task-status>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </label>
+                        <label class="full-width">
+                            Notes
+                            <textarea rows="3" placeholder="Extra directions or checklist notes" data-task-description></textarea>
+                        </label>
+                        <button class="button button-secondary assignment-remove" type="button" data-remove-task-row>Remove</button>
+                    </article>
+                </template>
+                <div class="actions">
+                    <button class="button button-primary" type="submit">Add event tasks</button>
+                </div>
+            </form>
+        </section>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>{% if current_user.role in manager_roles %}Event task board{% else %}My tasks for this event{% endif %}</h2>
+    </div>
+    {% set visible_tasks = tasks if current_user.role in manager_roles else tasks|selectattr('assigned_to', 'equalto', current_user.id)|list %}
+    {% if visible_tasks %}
+        <div class="dashboard-list">
+            {% for task in visible_tasks %}
+                <article class="dashboard-item">
+                    <strong>{{ task.title }}</strong>
+                    <div class="dashboard-meta">
+                        <span>{{ task.assignee.name }}</span>
+                        <span>{% if task.due_time %}{{ task.due_time|app_dt }}{% else %}No due time{% endif %}</span>
+                        <span class="status-pill {% if task_health(task, now) == 'Overdue' %}status-pill-danger{% endif %}">{{ task_health(task, now) }}</span>
+                    </div>
+                    {% if task.description %}
+                        <p class="support-copy">{{ task.description }}</p>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('tasks.update_status', task_id=task.id) }}" class="dashboard-task-actions">
+                        <input type="hidden" name="next" value="{{ url_for('events.detail', event_id=event.id) }}">
+                        {% if task.status != "In Progress" %}
+                            <button class="button button-secondary" type="submit" name="status" value="In Progress">Mark in progress</button>
+                        {% endif %}
+                        {% if task.status != "Completed" %}
+                            <button class="button button-primary" type="submit" name="status" value="Completed">Complete</button>
+                        {% elif current_user.role in manager_roles %}
+                            <button class="button button-secondary" type="submit" name="status" value="Pending">Reopen</button>
+                        {% endif %}
+                        {% if current_user.role in manager_roles %}
+                            <a class="button button-secondary" href="{{ url_for('tasks.edit', task_id=task.id) }}">Edit</a>
+                        {% endif %}
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No tasks are linked to this event yet.</p>
+    {% endif %}
 </section>
 
 <section class="panel">

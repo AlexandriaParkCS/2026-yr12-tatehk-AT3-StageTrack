@@ -237,6 +237,10 @@ def build_equipment_url(equipment):
     return url_for("equipment.detail", item_id=equipment.id, _external=True)
 
 
+def build_task_url(task):
+    return url_for("events.detail", event_id=task.event.id, _external=True)
+
+
 def send_event_assignment_email(user, event, crew_role):
     settings = get_email_settings()
     login_url = build_login_url()
@@ -274,6 +278,94 @@ def send_event_assignment_email(user, event, crew_role):
         email_type="general",
         html_body=html_body,
     )
+
+
+def send_task_assignment_email(task):
+    settings = get_email_settings()
+    task_url = build_task_url(task)
+    body = (
+        f"Hi {task.assignee.name},\n\n"
+        f"You have been assigned a new StageTrack task for '{task.event.name}'.\n"
+        f"Task: {task.title}\n"
+        f"Status: {task.status}\n"
+        f"Due: {task.due_time.strftime('%d %b %Y %I:%M %p') if task.due_time else 'No due time set'}\n\n"
+        f"Open the event here:\n{task_url}"
+    )
+    html_body = build_email_html(
+        preheader="A new StageTrack task has been assigned to you.",
+        heading="New Task Assigned",
+        intro=f"Hi {escape(task.assignee.name)}, you have a new StageTrack task.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(task.event.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Task</strong><br>{escape(task.title)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Status</strong><br>{escape(task.status)}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Due</strong><br>{escape(task.due_time.strftime('%d %b %Y %I:%M %p') if task.due_time else 'No due time set')}</p>
+            </div>
+        """,
+        cta_label="Open event",
+        cta_url=task_url,
+        footer_note="You are receiving this because a StageTrack manager assigned work to your account."
+    )
+    return deliver_email(settings, task.assignee.email, f"StageTrack task assigned: {task.title}", body, html_body=html_body)
+
+
+def send_task_update_email(task):
+    settings = get_email_settings()
+    task_url = build_task_url(task)
+    body = (
+        f"Hi {task.assignee.name},\n\n"
+        f"Your StageTrack task has been updated for '{task.event.name}'.\n"
+        f"Task: {task.title}\n"
+        f"Status: {task.status}\n"
+        f"Due: {task.due_time.strftime('%d %b %Y %I:%M %p') if task.due_time else 'No due time set'}\n\n"
+        f"Open the event here:\n{task_url}"
+    )
+    html_body = build_email_html(
+        preheader="A StageTrack task assigned to you has been updated.",
+        heading="Task Updated",
+        intro=f"Hi {escape(task.assignee.name)}, one of your StageTrack tasks has been updated.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(task.event.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Task</strong><br>{escape(task.title)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Status</strong><br>{escape(task.status)}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Due</strong><br>{escape(task.due_time.strftime('%d %b %Y %I:%M %p') if task.due_time else 'No due time set')}</p>
+            </div>
+        """,
+        cta_label="Open event",
+        cta_url=task_url,
+        footer_note="This message was sent because a StageTrack manager updated your task."
+    )
+    return deliver_email(settings, task.assignee.email, f"StageTrack task updated: {task.title}", body, html_body=html_body)
+
+
+def send_task_overdue_email(task):
+    settings = get_email_settings()
+    task_url = build_task_url(task)
+    body = (
+        f"Hi {task.assignee.name},\n\n"
+        f"Your StageTrack task is now overdue for '{task.event.name}'.\n"
+        f"Task: {task.title}\n"
+        f"Due: {task.due_time.strftime('%d %b %Y %I:%M %p') if task.due_time else 'No due time set'}\n\n"
+        f"Open the event here:\n{task_url}"
+    )
+    html_body = build_email_html(
+        preheader="A StageTrack task assigned to you is overdue.",
+        heading="Task Overdue",
+        intro=f"Hi {escape(task.assignee.name)}, StageTrack has marked one of your tasks as overdue.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,125,125,0.08); border:1px solid rgba(255,125,125,0.16);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(task.event.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Task</strong><br>{escape(task.title)}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Due</strong><br>{escape(task.due_time.strftime('%d %b %Y %I:%M %p') if task.due_time else 'No due time set')}</p>
+            </div>
+        """,
+        cta_label="Open event",
+        cta_url=task_url,
+        footer_note="Please update the task status or speak with your event lead if the schedule needs to change."
+    )
+    return deliver_email(settings, task.assignee.email, f"StageTrack task overdue: {task.title}", body, html_body=html_body)
 
 
 def send_event_invite_email(user, event, crew_role, invite_url):

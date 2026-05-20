@@ -145,6 +145,7 @@ class Task(db.Model):
     description = db.Column(db.Text)
     status = db.Column(db.String(50), nullable=False, default="Pending")
     due_time = db.Column(db.DateTime)
+    overdue_notified_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     event = db.relationship("Event", back_populates="tasks")
