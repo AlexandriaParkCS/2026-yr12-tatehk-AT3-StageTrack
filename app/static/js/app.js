@@ -243,3 +243,106 @@ if (taskBulkForm) {
 
     syncTaskRows();
 }
+
+const templateForm = document.querySelector("[data-template-form]");
+
+if (templateForm) {
+    const templateList = templateForm.querySelector("[data-template-list]");
+    const templateTemplate = templateForm.querySelector("[data-template-row-template]");
+    const templateCountInput = templateForm.querySelector("[data-template-count]");
+    const addTemplateButton = templateForm.querySelector("[data-add-template-row]");
+
+    const syncTemplateRows = () => {
+        const rows = Array.from(templateList.querySelectorAll("[data-template-row]"));
+        rows.forEach((row, index) => {
+            row.querySelector("[data-template-title]")?.setAttribute("name", `template_title_${index}`);
+            row.querySelector("[data-template-role]")?.setAttribute("name", `template_role_${index}`);
+            row.querySelector("[data-template-offset]")?.setAttribute("name", `template_due_offset_${index}`);
+            row.querySelector("[data-template-description]")?.setAttribute("name", `template_description_${index}`);
+            const removeButton = row.querySelector("[data-remove-template-row]");
+            if (removeButton) {
+                removeButton.hidden = rows.length === 1;
+            }
+        });
+        templateCountInput.value = rows.length;
+    };
+
+    const addTemplateRow = () => {
+        const fragment = templateTemplate.content.cloneNode(true);
+        templateList.appendChild(fragment);
+        syncTemplateRows();
+    };
+
+    addTemplateButton?.addEventListener("click", addTemplateRow);
+    templateList?.addEventListener("click", (event) => {
+        const removeButton = event.target.closest("[data-remove-template-row]");
+        if (!removeButton) {
+            return;
+        }
+        removeButton.closest("[data-template-row]")?.remove();
+        syncTemplateRows();
+    });
+
+    syncTemplateRows();
+}
+
+const templateApplyForm = document.querySelector("[data-template-apply-form]");
+
+if (templateApplyForm) {
+    templateApplyForm.addEventListener("submit", (event) => {
+        const templateSelect = templateApplyForm.querySelector("[data-template-select]");
+        const templateId = templateSelect?.value;
+        if (!templateId) {
+            event.preventDefault();
+            window.alert("Choose a task template first.");
+            return;
+        }
+        templateApplyForm.action = templateApplyForm.action.replace(/\/0\/apply$/, `/${templateId}/apply`);
+    });
+}
+
+document.querySelectorAll("[data-live-task]").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submitter = event.submitter;
+        const formData = new FormData(form);
+        if (submitter?.name && submitter?.value) {
+            formData.set(submitter.name, submitter.value);
+        }
+
+        const response = await fetch(form.action, {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            window.location.reload();
+            return;
+        }
+
+        const payload = await response.json();
+        const card = form.closest(".dashboard-item");
+        const statusPill = card?.querySelector(".status-pill");
+        if (statusPill) {
+            statusPill.textContent = payload.display_status;
+            statusPill.classList.toggle("status-pill-danger", payload.display_status === "Overdue");
+        }
+        if (payload.status === "Completed") {
+            card?.remove();
+            return;
+        }
+        const buttons = form.querySelectorAll("button[name='status']");
+        buttons.forEach((button) => {
+            if (button.value === "In Progress") {
+                button.hidden = payload.status === "In Progress";
+            }
+            if (button.value === "Completed") {
+                button.hidden = payload.status === "Completed";
+            }
+            if (button.value === "Pending") {
+                button.hidden = payload.status !== "Completed";
+            }
+        });
+    });
+});

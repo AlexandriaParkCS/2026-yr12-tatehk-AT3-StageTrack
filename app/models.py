@@ -135,6 +135,7 @@ class Event(db.Model):
         cascade="all, delete-orphan",
         lazy=True,
     )
+    task_templates = db.relationship("TaskTemplate", back_populates="event_source", lazy=True)
 
 
 class Task(db.Model):
@@ -145,11 +146,13 @@ class Task(db.Model):
     description = db.Column(db.Text)
     status = db.Column(db.String(50), nullable=False, default="Pending")
     due_time = db.Column(db.DateTime)
+    due_soon_notified_at = db.Column(db.DateTime)
     overdue_notified_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     event = db.relationship("Event", back_populates="tasks")
     assignee = db.relationship("User", back_populates="tasks")
+    comments = db.relationship("TaskComment", back_populates="task", cascade="all, delete-orphan", lazy=True)
 
 
 class EquipmentCheckout(db.Model):
@@ -200,8 +203,43 @@ class ChecklistItem(db.Model):
     description = db.Column(db.Text)
     completed = db.Column(db.Boolean, default=False, nullable=False)
     assigned_to = db.Column(db.Integer, db.ForeignKey("user.id"))
+    linked_task_id = db.Column(db.Integer, db.ForeignKey("task.id"))
 
     event = db.relationship("Event", back_populates="checklist_items")
+    linked_task = db.relationship("Task")
+
+
+class TaskComment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey("task.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    task = db.relationship("Task", back_populates="comments")
+    user = db.relationship("User")
+
+
+class TaskTemplate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text)
+    source_event_id = db.Column(db.Integer, db.ForeignKey("event.id"))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    event_source = db.relationship("Event", back_populates="task_templates")
+    items = db.relationship("TaskTemplateItem", back_populates="template", cascade="all, delete-orphan", lazy=True)
+
+
+class TaskTemplateItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(db.Integer, db.ForeignKey("task_template.id"), nullable=False)
+    title = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text)
+    role_hint = db.Column(db.String(120))
+    due_offset_minutes = db.Column(db.Integer)
+
+    template = db.relationship("TaskTemplate", back_populates="items")
 
 
 class PasswordResetToken(db.Model):

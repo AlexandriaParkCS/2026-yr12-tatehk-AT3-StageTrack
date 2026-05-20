@@ -13,7 +13,7 @@ from ..email_service import (
 )
 from ..extensions import db
 from ..pdf_service import build_event_equipment_pdf
-from ..models import Event, EventCrewAssignment, Task, User
+from ..models import ChecklistItem, Event, EventCrewAssignment, Task, TaskTemplate, User
 from ..system_settings_service import event_crew_roles, event_venues, get_system_settings, role_meets_requirement
 from . import events_bp
 
@@ -190,6 +190,7 @@ def detail(event_id):
     event_task_users = [assignment.user for assignment in event.crew_assignments if assignment.user and assignment.user.is_active]
     if not event_task_users:
         event_task_users = User.query.filter_by(is_active=True).order_by(User.name.asc()).all()
+    task_templates = TaskTemplate.query.order_by(TaskTemplate.name.asc()).all()
     return render_template(
         "events/detail.html",
         event=event,
@@ -203,6 +204,7 @@ def detail(event_id):
         crew_without_tasks=crew_without_tasks,
         now=now,
         task_health=task_health,
+        task_templates=task_templates,
     )
 
 
@@ -313,3 +315,72 @@ def delete(event_id):
     db.session.commit()
     flash("Event deleted.", "success")
     return redirect(url_for("events.index"))
+
+
+@events_bp.route("/<int:event_id>/checklists", methods=["POST"])
+@role_required("Admin", "Teacher", "Stage Manager")
+def add_checklist_item(event_id):
+    event = Event.query.get_or_404(event_id)
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+    assigned_to = request.form.get("assigned_to", type=int)
+    create_task = request.form.get("create_task") == "on"
+
+    if not title:
+        flash("Checklist title is required.", "error")
+        return redirect(url_for("events.detail", event_id=event.id))
+
+    checklist_item = ChecklistItem(
+        event_id=event.id,
+        title=title,
+        description=description or None,
+        assigned_to=assigned_to or None,
+    )
+    db.session.add(checklist_item)
+    db.session.flush()
+
+    if create_task and assigned_to:
+        task = Task(
+            event_id=event.id,
+            assigned_to=assigned_to,
+            title=title,
+            description=description or None,
+            status="Pending",
+            due_time=event.setup_time or event.event_date,
+        )
+        db.session.add(task)
+        db.session.flush()
+        checklist_item.linked_task_id = task.id
+
+    db.session.commit()
+    flash("Checklist item added.", "success")
+    return redirect(url_for("events.detail", event_id=event.id))
+
+
+@events_bp.route("/<int:event_id>/checklists/<int:item_id>/toggle", methods=["POST"])
+@login_required
+def toggle_checklist_item(event_id, item_id):
+    event = Event.query.get_or_404(event_id)
+    item = ChecklistItem.query.filter_by(event_id=event.id, id=item_id).first_or_404()
+    user = current_user()
+    if user.role not in {"Admin", "Teacher", "Stage Manager"} and item.assigned_to != user.id:
+        flash("You do not have permission to update that checklist item.", "error")
+        return redirect(url_for("events.detail", event_id=event.id))
+
+    item.completed = not item.completed
+    if item.linked_task:
+        item.linked_task.status = "Completed" if item.completed else "Pending"
+    db.session.commit()
+    flash("Checklist item updated.", "success")
+    return redirect(url_for("events.detail", event_id=event.id))
+
+
+@events_bp.route("/<int:event_id>/checklists/<int:item_id>/delete", methods=["POST"])
+@role_required("Admin", "Teacher", "Stage Manager")
+def delete_checklist_item(event_id, item_id):
+    event = Event.query.get_or_404(event_id)
+    item = ChecklistItem.query.filter_by(event_id=event.id, id=item_id).first_or_404()
+    db.session.delete(item)
+    db.session.commit()
+    flash("Checklist item deleted.", "success")
+    return redirect(url_for("events.detail", event_id=event.id))

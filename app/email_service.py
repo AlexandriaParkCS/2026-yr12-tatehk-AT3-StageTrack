@@ -368,6 +368,34 @@ def send_task_overdue_email(task):
     return deliver_email(settings, task.assignee.email, f"StageTrack task overdue: {task.title}", body, html_body=html_body)
 
 
+def send_task_due_soon_email(task):
+    settings = get_email_settings()
+    task_url = build_task_url(task)
+    body = (
+        f"Hi {task.assignee.name},\n\n"
+        f"Your StageTrack task is due soon for '{task.event.name}'.\n"
+        f"Task: {task.title}\n"
+        f"Due: {task.due_time.strftime('%d %b %Y %I:%M %p') if task.due_time else 'No due time set'}\n\n"
+        f"Open the event here:\n{task_url}"
+    )
+    html_body = build_email_html(
+        preheader="A StageTrack task assigned to you is due soon.",
+        heading="Task Due Soon",
+        intro=f"Hi {escape(task.assignee.name)}, one of your StageTrack tasks is coming up soon.",
+        body_html=f"""
+            <div style="padding:18px; border-radius:18px; background:rgba(255,211,61,0.08); border:1px solid rgba(255,211,61,0.18);">
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Event</strong><br>{escape(task.event.name)}</p>
+                <p style="margin:0 0 8px;"><strong style="color:#ffd33d;">Task</strong><br>{escape(task.title)}</p>
+                <p style="margin:0;"><strong style="color:#ffd33d;">Due</strong><br>{escape(task.due_time.strftime('%d %b %Y %I:%M %p') if task.due_time else 'No due time set')}</p>
+            </div>
+        """,
+        cta_label="Open event",
+        cta_url=task_url,
+        footer_note="This reminder was sent because the task is due soon in StageTrack."
+    )
+    return deliver_email(settings, task.assignee.email, f"StageTrack task due soon: {task.title}", body, html_body=html_body)
+
+
 def send_event_invite_email(user, event, crew_role, invite_url):
     settings = get_email_settings()
     body = (

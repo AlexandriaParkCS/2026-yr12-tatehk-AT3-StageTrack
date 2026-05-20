@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Today{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Crew mobile view</p>
+        <h1>Today</h1>
+        <p>Open this page during an event for a focused list of today’s jobs, linked events, and gear under your name.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a class="button button-primary" href="{{ url_for('tasks.index') }}">All tasks</a>
+    </div>
+</section>
+
+<section class="content-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Today’s tasks</h2>
+        </div>
+        {% if tasks %}
+            <div class="dashboard-list">
+                {% for task in tasks %}
+                    <article class="dashboard-item">
+                        <strong><a href="{{ url_for('events.detail', event_id=task.event.id) }}">{{ task.title }}</a></strong>
+                        <div class="dashboard-meta">
+                            <span>{{ task.event.name }}</span>
+                            <span>{{ task.due_time|app_dt }}</span>
+                            <span class="status-pill {% if task_state(task, now) == 'Overdue' %}status-pill-danger{% endif %}">{{ task_state(task, now) }}</span>
+                        </div>
+                        {% if task.description %}
+                            <p class="support-copy">{{ task.description }}</p>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">No tasks are due today.</p>
+        {% endif %}
+    </section>
+
+    <div class="stack">
+        <section class="panel">
+            <div class="panel-header">
+                <h2>My next events</h2>
+            </div>
+            {% if events %}
+                <div class="dashboard-list">
+                    {% for assignment in events %}
+                        <article class="dashboard-item">
+                            <strong><a href="{{ url_for('events.detail', event_id=assignment.event.id) }}">{{ assignment.event.name }}</a></strong>
+                            <div class="dashboard-meta">
+                                <span>{{ assignment.crew_role }}</span>
+                                <span>{{ assignment.event.venue }}</span>
+                                <span>{{ assignment.event.event_date|app_dt }}</span>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state">No linked events are coming up.</p>
+            {% endif %}
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2>Equipment under my name</h2>
+            </div>
+            {% if active_equipment %}
+                <div class="dashboard-list">
+                    {% for checkout in active_equipment %}
+                        <article class="dashboard-item">
+                            <strong><a href="{{ url_for('equipment.detail', item_id=checkout.equipment.id) }}">{{ checkout.equipment.name }}</a></strong>
+                            <div class="dashboard-meta">
+                                <span>{{ checkout.event.name if checkout.event else "No event linked" }}</span>
+                                <span>{% if checkout.due_at %}Due {{ checkout.due_at|app_dt }}{% else %}No due date{% endif %}</span>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state">No equipment is currently checked out under your name.</p>
+            {% endif %}
+        </section>
+    </div>
+</section>
+{% endblock %}

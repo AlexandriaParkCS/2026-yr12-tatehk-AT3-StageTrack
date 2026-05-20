@@ -10,11 +10,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .admin import admin_bp
 from .auth import auth_bp
 from .config import Config
-from .email_service import send_enquiry_email, send_equipment_overdue_email, send_task_overdue_email
+from .email_service import send_enquiry_email, send_equipment_overdue_email, send_task_due_soon_email, send_task_overdue_email
 from .equipment import equipment_bp
 from .events import events_bp
 from .extensions import db
-from .models import ConsumableAdjustment, ConsumableItem, EquipmentCheckout, EquipmentKit, EquipmentKitItem, Event, EventCrewAssignment, Equipment, ScanLog, StorageLocation, SystemSettings, Task, User
+from .models import ChecklistItem, ConsumableAdjustment, ConsumableItem, EquipmentCheckout, EquipmentKit, EquipmentKitItem, Event, EventCrewAssignment, Equipment, ScanLog, StorageLocation, SystemSettings, Task, TaskComment, TaskTemplate, TaskTemplateItem, User
 from .site_service import get_site_settings
 from .system_settings_service import alert_recipient_list, format_datetime_for_display, get_system_settings
 from .tasks import tasks_bp
@@ -77,6 +77,23 @@ def create_app(config_class=Config):
 
     @app.before_request
     def send_pending_task_overdue_emails():
+        due_soon_limit = datetime.now() + timedelta(hours=max(1, get_system_settings().due_soon_hours))
+        due_soon_tasks = Task.query.filter(
+            Task.status != "Completed",
+            Task.due_time.is_not(None),
+            Task.due_soon_notified_at.is_(None),
+            Task.due_time >= datetime.now(),
+            Task.due_time <= due_soon_limit,
+        ).all()
+
+        for task in due_soon_tasks:
+            try:
+                sent = send_task_due_soon_email(task)
+            except Exception:
+                sent = False
+            if sent:
+                task.due_soon_notified_at = datetime.utcnow()
+
         overdue_tasks = Task.query.filter(
             Task.status != "Completed",
             Task.due_time.is_not(None),
@@ -92,7 +109,7 @@ def create_app(config_class=Config):
             if sent:
                 task.overdue_notified_at = datetime.utcnow()
 
-        if overdue_tasks:
+        if due_soon_tasks or overdue_tasks:
             db.session.commit()
 
     @app.route("/")
@@ -405,8 +422,16 @@ def ensure_schema_updates():
 
     if "task" in table_names:
         task_columns = {column["name"] for column in inspector.get_columns("task")}
+        if "due_soon_notified_at" not in task_columns:
+            db.session.execute(text("ALTER TABLE task ADD COLUMN due_soon_notified_at DATETIME"))
         if "overdue_notified_at" not in task_columns:
             db.session.execute(text("ALTER TABLE task ADD COLUMN overdue_notified_at DATETIME"))
+            db.session.commit()
+
+    if "checklist_item" in table_names:
+        checklist_columns = {column["name"] for column in inspector.get_columns("checklist_item")}
+        if "linked_task_id" not in checklist_columns:
+            db.session.execute(text("ALTER TABLE checklist_item ADD COLUMN linked_task_id INTEGER"))
             db.session.commit()
 
     if "event_crew_assignment" in table_names:
@@ -443,6 +468,12 @@ def ensure_schema_updates():
         SystemSettings.__table__.create(db.engine)
     if "scan_log" not in table_names:
         ScanLog.__table__.create(db.engine)
+    if "task_comment" not in table_names:
+        TaskComment.__table__.create(db.engine)
+    if "task_template" not in table_names:
+        TaskTemplate.__table__.create(db.engine)
+    if "task_template_item" not in table_names:
+        TaskTemplateItem.__table__.create(db.engine)
 
 
 app = create_app()

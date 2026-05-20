@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Task Templates{% endblock %}
+{% block content %}
+<section class="page-header page-header-inline">
+    <div>
+        <p class="eyebrow">Crew coordination</p>
+        <h1>Task templates</h1>
+        <p>Build reusable event task packs for common setups, then apply them to events in one click.</p>
+    </div>
+    <div class="actions">
+        <a class="button button-secondary" href="{{ url_for('tasks.index') }}">Back to tasks</a>
+        <a class="button button-primary" href="{{ url_for('tasks.create_template') }}">New template</a>
+    </div>
+</section>
+
+<section class="panel">
+    {% if templates %}
+        <div class="dashboard-list">
+            {% for template in templates %}
+                <article class="dashboard-item">
+                    <strong>{{ template.name }}</strong>
+                    <div class="dashboard-meta">
+                        <span>{{ template.items|length }} task{{ "" if template.items|length == 1 else "s" }}</span>
+                        <span>{{ template.description or "No description" }}</span>
+                    </div>
+                    <div class="actions">
+                        <a class="button button-secondary" href="{{ url_for('tasks.edit_template', template_id=template.id) }}">Edit</a>
+                        <form method="post" action="{{ url_for('tasks.delete_template', template_id=template.id) }}">
+                            <button class="button button-danger" type="submit">Delete</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-state">No task templates have been created yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

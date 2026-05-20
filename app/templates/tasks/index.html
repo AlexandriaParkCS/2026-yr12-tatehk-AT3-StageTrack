@@ -13,9 +13,14 @@
             {% endif %}
         </p>
     </div>
-    {% if is_manager %}
-        <a class="button button-primary" href="{{ url_for('tasks.create') }}">Add task</a>
-    {% endif %}
+    <div class="actions">
+        {% if is_manager %}
+            <a class="button button-secondary" href="{{ url_for('tasks.templates') }}">Task templates</a>
+            <a class="button button-primary" href="{{ url_for('tasks.create') }}">Add task</a>
+        {% else %}
+            <a class="button button-primary" href="{{ url_for('tasks.today') }}">Today view</a>
+        {% endif %}
+    </div>
 </section>
 
 <section class="panel">

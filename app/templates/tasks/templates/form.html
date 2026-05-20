@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if template else "New" }} Task Template{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Crew coordination</p>
+        <h1>{{ "Edit" if template else "Create" }} task template</h1>
+        <p>Set up reusable tasks with role hints and optional time offsets from event setup time.</p>
+    </div>
+</section>
+
+<section class="panel">
+    <form method="post" class="form-grid" data-template-form>
+        <input type="hidden" name="template_entry_count" value="{{ rows|length }}" data-template-count>
+        <label>
+            Template name
+            <input type="text" name="name" value="{{ template.name if template else '' }}" required>
+        </label>
+        <label class="full-width">
+            Description
+            <textarea name="description" rows="3">{{ template.description if template else '' }}</textarea>
+        </label>
+        <div class="assignment-toolbar">
+            <button class="button button-secondary" type="button" data-add-template-row>Add template row</button>
+        </div>
+        <div class="assignment-list" data-template-list>
+            {% for row in rows %}
+                <article class="assignment-row assignment-row-task" data-template-row>
+                    <label>
+                        Task title
+                        <input type="text" name="template_title_{{ loop.index0 }}" value="{{ row.title if row.title is defined else '' }}" data-template-title>
+                    </label>
+                    <label>
+                        Role hint
+                        <input type="text" name="template_role_{{ loop.index0 }}" value="{{ row.role_hint if row.role_hint is defined else '' }}" list="template-role-options" placeholder="Example: Lighting Operator" data-template-role>
+                    </label>
+                    <label>
+                        Minutes from setup
+                        <input type="number" name="template_due_offset_{{ loop.index0 }}" value="{{ row.due_offset_minutes if row.due_offset_minutes is defined else '' }}" placeholder="0" data-template-offset>
+                    </label>
+                    <label class="full-width">
+                        Notes
+                        <textarea name="template_description_{{ loop.index0 }}" rows="3" data-template-description>{{ row.description if row.description is defined else '' }}</textarea>
+                    </label>
+                    <button class="button button-secondary assignment-remove" type="button" data-remove-template-row {% if rows|length == 1 %}hidden{% endif %}>Remove</button>
+                </article>
+            {% endfor %}
+        </div>
+        <template data-template-row-template>
+            <article class="assignment-row assignment-row-task" data-template-row>
+                <label>
+                    Task title
+                    <input type="text" data-template-title>
+                </label>
+                <label>
+                    Role hint
+                    <input type="text" list="template-role-options" placeholder="Example: Sound Operator" data-template-role>
+                </label>
+                <label>
+                    Minutes from setup
+                    <input type="number" placeholder="0" data-template-offset>
+                </label>
+                <label class="full-width">
+                    Notes
+                    <textarea rows="3" data-template-description></textarea>
+                </label>
+                <button class="button button-secondary assignment-remove" type="button" data-remove-template-row>Remove</button>
+            </article>
+        </template>
+        <div class="actions">
+            <button class="button button-primary" type="submit">Save template</button>
+            <a class="button button-secondary" href="{{ url_for('tasks.templates') }}">Cancel</a>
+        </div>
+    </form>
+</section>
+
+<datalist id="template-role-options">
+    {% for role in role_hints %}
+        <option value="{{ role }}"></option>
+    {% endfor %}
+</datalist>
+{% endblock %}
